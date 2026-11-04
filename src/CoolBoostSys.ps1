@@ -34,10 +34,8 @@ try {
     'off'    { $ok=Set-CB 0; Log "Manual: OFF (ok=$ok)"; return }
   }
   # AC/battery from Windows' own power status (same source as the tray icon). ACLineStatus 255 = unknown -> treat as AC.
-  if (-not ('CB.Pwr' -as [type])) {
-    Add-Type -Namespace CB -Name Pwr -MemberDefinition '[StructLayout(LayoutKind.Sequential)] public struct SPS { public byte AC; public byte Flag; public byte Pct; public byte Saver; public int Life; public int Full; } [DllImport("kernel32.dll")] public static extern bool GetSystemPowerStatus(out SPS s);'
-  }
-  function Get-OnAC { $s = New-Object 'CB.Pwr+SPS'; if ([CB.Pwr]::GetSystemPowerStatus([ref]$s)) { return ($s.AC -ne 0) }; return $true }
+  Add-Type -AssemblyName System.Windows.Forms
+  function Get-OnAC { [Windows.Forms.SystemInformation]::PowerStatus.PowerLineStatus -ne 'Offline' }
   # confirm the state over a few seconds, so a brief glitch at plug/unplug can't switch CoolBoost
   $onAC = Get-OnAC; Start-Sleep 1; $again = Get-OnAC
   if ($again -ne $onAC) { Start-Sleep 1; $onAC = Get-OnAC; Log "Power state changed while checking; using: $(if($onAC){'AC'}else{'battery'})" }

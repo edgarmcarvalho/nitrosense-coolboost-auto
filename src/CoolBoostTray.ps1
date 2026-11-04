@@ -108,9 +108,8 @@ function Do-Toggle {
   if ($script:busy) { return }
   if ($script:gs.active) { $script:gs.override=$true; TLog 'Manual toggle during game - automation paused until it closes' }
   $want = if ((Get-CB) -eq 1) { 0 } else { 1 }
-  # show the new state immediately; the timer reverts it if the switch fails
-  $ni.Icon = $icons["$want$([bool]$script:gs.active)"]
-  $ni.Text = "CoolBoost Auto`nCoolBoost $(if($want){'ON'}else{'OFF'})"
+  # the icon changes only once the hardware confirms (the timer checks every 0.1 s while switching)
+  $ni.Text = "CoolBoost Auto`nturning CoolBoost $(if($want){'ON'}else{'OFF'})..."
   Run-Task $(if ($want) { 'CoolBoostOn' } else { 'CoolBoostOff' }) $want
 }
 
