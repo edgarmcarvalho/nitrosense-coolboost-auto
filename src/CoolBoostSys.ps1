@@ -25,7 +25,7 @@ try {
     [void](Invoke-CimMethod -InputObject $ap -MethodName SetFunction -Arguments @{uiInput=[uint64](([uint64]$v -shl 16) -bor 7)})
     # keep NitroSense's own setting in sync so its app (and the tray icon) show the right state
     $nk='HKLM:\SOFTWARE\OEM\NitroSense\FanControl'; if (Test-Path $nk) { Set-ItemProperty $nk -Name CoolBoostMode -Value $v -Type DWord }
-    Start-Sleep -Milliseconds 300; return ((Get-CB) -eq $v)
+    if ((Get-CB) -eq $v) { return $true }; Start-Sleep -Milliseconds 200; return ((Get-CB) -eq $v)
   }
   $cur=Get-CB
   switch($Mode){
@@ -39,8 +39,8 @@ try {
   }
   function Get-OnAC { $s = New-Object 'CB.Pwr+SPS'; if ([CB.Pwr]::GetSystemPowerStatus([ref]$s)) { return ($s.AC -ne 0) }; return $true }
   # confirm the state over a few seconds, so a brief glitch at plug/unplug can't switch CoolBoost
-  Start-Sleep 2; $onAC = Get-OnAC; Start-Sleep 3; $again = Get-OnAC
-  if ($again -ne $onAC) { Start-Sleep 3; $onAC = Get-OnAC; Log "Power state changed while checking; using: $(if($onAC){'AC'}else{'battery'})" }
+  $onAC = Get-OnAC; Start-Sleep 1; $again = Get-OnAC
+  if ($again -ne $onAC) { Start-Sleep 1; $onAC = Get-OnAC; Log "Power state changed while checking; using: $(if($onAC){'AC'}else{'battery'})" }
   try { $wmiAC = [bool](Get-CimInstance -Namespace root\WMI -ClassName BatteryStatus | Select -First 1).PowerOnline; if ($wmiAC -ne $onAC) { Log "Note: Windows says $(if($onAC){'AC'}else{'battery'}), battery driver says $(if($wmiAC){'AC'}else{'battery'}); using Windows" } } catch {}
   $cfg=Get-Cfg
   $prevPwr = if (Test-Path $lastPwr) { (Get-Content $lastPwr -Raw).Trim() } else { '' }

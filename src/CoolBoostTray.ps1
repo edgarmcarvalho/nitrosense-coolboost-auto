@@ -96,18 +96,22 @@ function Get-RunningGames {
 }
 
 # ---------- switching ----------
-$script:busy=$false; $script:proc=$null; $script:until=Get-Date; $script:startCB=-1
+$script:busy=$false; $script:expect=-1; $script:until=Get-Date
 $script:ourCmdUntil=[datetime]::MinValue
-function Run-Task($name){
-  $script:busy=$true; $ni.Text="CoolBoost Auto`nswitching..."
-  $script:startCB=Get-CB
-  $script:proc=Start-Process schtasks.exe -WindowStyle Hidden -PassThru -ArgumentList "/run /tn $name"
-  $script:until=(Get-Date).AddSeconds(6); $script:ourCmdUntil=(Get-Date).AddSeconds(10)
+function Run-Task($name, [int]$expect){
+  $script:busy=$true; $script:expect=$expect
+  Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList "/run /tn $name"
+  $script:until=(Get-Date).AddSeconds(4); $script:ourCmdUntil=(Get-Date).AddSeconds(10)
+  $timer.Interval=100   # check every 0.1 s until the hardware confirms
 }
 function Do-Toggle {
   if ($script:busy) { return }
   if ($script:gs.active) { $script:gs.override=$true; TLog 'Manual toggle during game - automation paused until it closes' }
-  Run-Task 'CoolBoostToggle'
+  $want = if ((Get-CB) -eq 1) { 0 } else { 1 }
+  # show the new state immediately; the timer reverts it if the switch fails
+  $ni.Icon = $icons["$want$([bool]$script:gs.active)"]
+  $ni.Text = "CoolBoost Auto`nCoolBoost $(if($want){'ON'}else{'OFF'})"
+  Run-Task $(if ($want) { 'CoolBoostOn' } else { 'CoolBoostOff' }) $want
 }
 
 # ---------- gaming state machine ----------
@@ -140,14 +144,14 @@ function Game-Tick {
 
   if ($script:pendingOff -and -not $script:busy) {
     $script:pendingOff=$false
-    if ((Get-CB) -eq 1) { TLog 'Turning CoolBoost OFF (back to pre-game state)'; Run-Task 'CoolBoostOff' }
+    if ((Get-CB) -eq 1) { TLog 'Turning CoolBoost OFF (back to pre-game state)'; Run-Task 'CoolBoostOff' 0 }
     $script:prevCB=$cb; return
   }
 
   if ($script:gs.active -and -not $script:busy) {
     # user (not us, not a power change) turned it off mid-game -> respect until the game closes
     if ($script:gs.weTurnedOn -and $script:prevCB -eq 1 -and $cb -eq 0 -and $ac -and $quiet -and -not $script:gs.override) { $script:gs.override=$true; $script:last=''; TLog 'Manual change during game - automation paused until it closes' }
-    elseif (-not $script:gs.override -and $ac -and $cb -eq 0 -and $quiet) { $script:gs.weTurnedOn=$true; TLog "Turning CoolBoost ON for $($script:gs.name)"; Run-Task 'CoolBoostOn' }
+    elseif (-not $script:gs.override -and $ac -and $cb -eq 0 -and $quiet) { $script:gs.weTurnedOn=$true; TLog "Turning CoolBoost ON for $($script:gs.name)"; Run-Task 'CoolBoostOn' 1 }
   }
   $script:prevCB=$cb
 }
@@ -267,8 +271,11 @@ $timer=New-Object Windows.Forms.Timer
 $timer.Interval=1500
 $timer.add_Tick({
   try {
+    if ($script:busy) {
+      if ((Get-CB) -eq $script:expect -or (Get-Date) -gt $script:until) { $script:busy=$false; $timer.Interval=1500; $script:last=''; Refresh }
+      return
+    }
     $script:cfg=Get-Cfg
-    if ($script:busy -and $script:proc -and $script:proc.HasExited -and ((Get-Date) -gt $script:until -or (Get-CB) -ne $script:startCB)) { $script:busy=$false; $script:last='' }
     Game-Tick
     if (-not $script:busy) { Refresh }
   } catch {}
