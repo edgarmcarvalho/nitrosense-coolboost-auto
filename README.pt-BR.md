@@ -4,6 +4,8 @@
 
 🇺🇸 [Read in English](README.md)
 
+![Menu do CoolBoost Auto na bandeja](docs/screenshot.png)
+
 > Projeto sem vínculo com a Acer e não endossado por ela. *Acer, Nitro, NitroSense e CoolBoost são marcas registradas da Acer Inc.*
 
 ## Recursos
@@ -19,8 +21,8 @@
   - Desinstaladores, relatórios de erro e launchers são ignorados.
   - Se você mudar o CoolBoost manualmente no meio do jogo, a automação respeita a sua escolha até o jogo fechar.
   - Na bateria, a regra da bateria tem prioridade.
-- **Ícone na bandeja:**
-  - Azul = LIGADO, cinza com traço vermelho = DESLIGADO, selo verde = jogo aberto.
+- **Ícone na bandeja (estilo NitroSense):**
+  - Ventoinha vermelha = LIGADO, cinza = DESLIGADO, selo verde = jogo aberto.
   - Clique esquerdo alterna. Clique direito mostra todas as opções.
   - Sem pedidos de administrador (UAC).
 - **Sem janela do NitroSense.** O CoolBoost é alternado pela mesma chamada de firmware que o NitroSense usa, e a configuração do próprio NitroSense é mantida em sincronia, então o app sempre mostra o estado certo.
@@ -37,16 +39,22 @@ O instalador verifica o notebook antes de qualquer coisa. Se o modelo não supor
 
 ## Instalação
 
-1. Baixe este repositório: **Code → Download ZIP**, e extraia.
-2. Clique com o botão direito em **`install.ps1`** → **Executar com o PowerShell**, e aceite o pedido de administrador (UAC).
-   - Ou, num terminal dentro da pasta extraída: `powershell -ExecutionPolicy Bypass -File .\install.ps1`
-3. Um ícone de floco de neve aparece ao lado do relógio. Ele pode estar escondido na setinha **^**; arraste-o para a barra de tarefas para deixá-lo sempre visível.
+1. Baixe o **`CoolBoostAuto-Setup-x.y.z.exe`** da [versão mais recente](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest).
+2. Execute, aceite o pedido de administrador (UAC) e avance pelo assistente.
+   - O assistente verifica o notebook primeiro. Se o modelo não for compatível, ele para antes de instalar qualquer coisa.
+   - O SmartScreen do Windows pode avisar porque o instalador não tem assinatura digital: **Mais informações → Executar assim mesmo**.
+3. Um ícone de ventoinha vermelha aparece ao lado do relógio. Ele pode estar escondido na setinha **^**; arraste-o para a barra de tarefas para deixá-lo sempre visível.
 
-Opções: `-NoAutostart` (não iniciar o ícone ao fazer login). Rodar o instalador de novo atualiza a instalação e mantém suas configurações.
+Rodar uma versão mais nova do instalador atualiza a instalação e mantém suas configurações.
+
+<details><summary>Prefere scripts? Instalação sem o assistente</summary>
+
+Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da versão (ou **Code → Download ZIP**), extraia e clique com o botão direito em **`install.ps1`** → **Executar com o PowerShell**. Opções: `-NoAutostart` (não iniciar o ícone ao fazer login). Para remover: **`uninstall.ps1`**, com `-KeepSettings` para guardar suas configurações.
+</details>
 
 ## Desinstalação
 
-Clique com o botão direito em **`uninstall.ps1`** → **Executar com o PowerShell**. Use `-KeepSettings` para guardar suas configurações para uma reinstalação futura. O CoolBoost fica no estado em que estiver.
+**Configurações → Aplicativos → Aplicativos instalados → CoolBoost Auto → Desinstalar.** O CoolBoost fica no estado em que estiver.
 
 ## Como usar
 
@@ -82,6 +90,10 @@ Também dá para reabrir o ícone pelo menu Iniciar: **CoolBoost Tray**.
 - A parte que roda como SYSTEM fica numa pasta que só administradores podem alterar.
 - Do arquivo de configurações, que o usuário pode editar, ela só lê valores verdadeiro/falso e uma lista fixa de opções.
 - Sem acesso à internet e sem telemetria.
+
+## Como o instalador é gerado
+
+As versões são geradas pelo GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) sempre que uma tag `v*` é enviada. Ele compila o [`installer/setup.iss`](installer/setup.iss) com o Inno Setup e anexa o instalador, um zip com os scripts e os checksums à versão. Para gerar localmente: `ISCC.exe /DAppVersion=0.9.0 installer\setup.iss`.
 
 ## Limitações conhecidas
 

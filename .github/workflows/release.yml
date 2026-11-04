@@ -35,7 +35,8 @@ jobs:
           Copy-Item install.ps1, uninstall.ps1, README.md, README.pt-BR.md, LICENSE $stage
           Copy-Item src, assets $stage -Recurse
           Compress-Archive -Path $stage -DestinationPath "dist\CoolBoostAuto-Scripts-$env:VERSION.zip"
-          Get-FileHash dist\* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Out-File dist\SHA256SUMS.txt -Encoding ascii
+          $sums = Get-ChildItem dist -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" }
+          $sums | Set-Content dist\SHA256SUMS.txt -Encoding ascii
 
       - name: Publish release
         if: github.ref_type == 'tag'

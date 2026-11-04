@@ -4,6 +4,8 @@
 
 🇧🇷 [Leia em português](README.pt-BR.md)
 
+![CoolBoost Auto tray menu](docs/screenshot.png)
+
 > Not affiliated with or endorsed by Acer. *Acer, Nitro, NitroSense and CoolBoost are trademarks of Acer Inc.*
 
 ## Features
@@ -19,8 +21,8 @@
   - Uninstallers, crash reporters and launchers are ignored.
   - If you change CoolBoost yourself mid-game, the automation leaves it alone until the game closes.
   - On battery, the battery rule wins.
-- **Tray icon:**
-  - Blue = ON, grey with a red slash = OFF, green badge = game running.
+- **Tray icon (NitroSense style):**
+  - Red fan = ON, grey fan = OFF, green badge = game running.
   - Left-click to toggle. Right-click for all the options.
   - No UAC prompts.
 - **No NitroSense window.** CoolBoost is switched through the same firmware call NitroSense uses, and NitroSense's own setting is kept in sync, so the app always shows the right state.
@@ -37,16 +39,22 @@ The installer checks your laptop first. If it doesn't support this CoolBoost int
 
 ## Install
 
-1. Download this repository: **Code → Download ZIP**, then extract it.
-2. Right-click **`install.ps1`** → **Run with PowerShell**, and accept the admin (UAC) prompt.
-   - Or, from a terminal in the extracted folder: `powershell -ExecutionPolicy Bypass -File .\install.ps1`
-3. A snowflake icon appears next to the clock. It may be hidden under the **^** arrow; drag it onto the taskbar to keep it visible.
+1. Download **`CoolBoostAuto-Setup-x.y.z.exe`** from the [latest release](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest).
+2. Run it, accept the admin (UAC) prompt and click through the wizard.
+   - The wizard checks your laptop first. If it isn't supported, it stops before installing anything.
+   - Windows SmartScreen may warn because the installer isn't code-signed: **More info → Run anyway**.
+3. A red fan icon appears next to the clock. It may be hidden under the **^** arrow; drag it onto the taskbar to keep it visible.
 
-Options: `-NoAutostart` (don't start the icon at login). Re-running the installer upgrades an existing install and keeps your settings.
+Running a newer setup upgrades an existing install and keeps your settings.
+
+<details><summary>Prefer scripts? Install without the wizard</summary>
+
+Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release (or **Code → Download ZIP**), extract it, then right-click **`install.ps1`** → **Run with PowerShell**. Options: `-NoAutostart` (don't start the icon at login). To remove: **`uninstall.ps1`**, with `-KeepSettings` to keep your settings.
+</details>
 
 ## Uninstall
 
-Right-click **`uninstall.ps1`** → **Run with PowerShell**. Add `-KeepSettings` to keep your settings for a later reinstall. CoolBoost stays in whatever state it was in.
+**Settings → Apps → Installed apps → CoolBoost Auto → Uninstall.** CoolBoost stays in whatever state it was in.
 
 ## Using it
 
@@ -82,6 +90,10 @@ You can also reopen the icon from the Start menu: **CoolBoost Tray**.
 - The SYSTEM part lives in an admin-only folder.
 - It reads only true/false values and a fixed list of options from the user-editable settings file.
 - No network access and no telemetry.
+
+## Building the installer
+
+Releases are built by GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) whenever a `v*` tag is pushed. It compiles [`installer/setup.iss`](installer/setup.iss) with Inno Setup and attaches the setup, a scripts zip and checksums to the release. To build locally: `ISCC.exe /DAppVersion=0.9.0 installer\setup.iss`.
 
 ## Known limitations
 
