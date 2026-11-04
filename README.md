@@ -1,6 +1,6 @@
 # nitrosense-coolboost-auto
 
-**Automatic CoolBoost™ for Acer Nitro laptops**: turns CoolBoost off on battery, brings it back when you plug in, switches it on while you're gaming, and gives you a one-click tray icon. NitroSense itself never has to open.
+**One-click CoolBoost™ on/off + automation for Acer Nitro laptops.** Click the tray icon to switch CoolBoost on or off instantly. It also turns CoolBoost off on battery, brings it back when you plug in and switches it on while you're gaming. NitroSense itself never has to open.
 
 🇧🇷 [Leia em português](README.pt-BR.md)
 
@@ -10,6 +10,7 @@
 
 ## Features
 
+- **One-click on/off:** left-click the tray icon to switch CoolBoost on or off instantly. No NitroSense window and no admin prompt.
 - **Battery rule:** CoolBoost turns **off** when you unplug, so the fans don't drain the battery.
 - **Plug-in rule:** when you plug back in, choose what happens:
   - **Restore previous state** (default)

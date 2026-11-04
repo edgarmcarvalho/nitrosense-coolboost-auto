@@ -1,6 +1,6 @@
 # nitrosense-coolboost-auto
 
-**CoolBoost™ automático para notebooks Acer Nitro**: desliga o CoolBoost na bateria, religa quando você conecta o carregador, liga enquanto você joga e oferece um ícone na bandeja para alternar com um clique. Tudo isso sem precisar abrir o NitroSense.
+**CoolBoost™ liga/desliga com um clique + automação para notebooks Acer Nitro.** Clique no ícone da bandeja para ligar ou desligar o CoolBoost na hora. Ele também desliga o CoolBoost na bateria, religa quando você conecta o carregador e liga enquanto você joga. Tudo isso sem precisar abrir o NitroSense.
 
 🇺🇸 [Read in English](README.md)
 
@@ -10,6 +10,7 @@
 
 ## Recursos
 
+- **Liga/desliga com um clique:** clique com o botão esquerdo no ícone da bandeja para ligar ou desligar o CoolBoost na hora. Sem janela do NitroSense e sem pedido de administrador.
 - **Regra da bateria:** o CoolBoost **desliga** quando você tira o carregador, para as ventoinhas não gastarem bateria.
 - **Regra da tomada:** ao conectar de novo, você escolhe o que acontece:
   - **Restaurar estado anterior** (padrão)
