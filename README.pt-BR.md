@@ -29,7 +29,7 @@
 
 - **Liga/desliga com um clique:** clique com o botão esquerdo no ícone da bandeja para alternar o CoolBoost na hora. Sem pedido de administrador.
 - **Pausa quando quiser:** *Pause automation* no menu pausa toda a troca automática até você retomar.
-- **Ícone na bandeja (estilo NitroSense):** ventoinha vermelha = LIGADO, cinza = DESLIGADO, selo verde = jogo aberto. Clique direito mostra todas as opções.
+- **Ícone na bandeja (estilo NitroSense):** ventoinha vermelha = LIGADO, cinza = DESLIGADO, selo verde = jogo aberto, selo amarelo de pausa = automação pausada. Clique direito mostra todas as opções.
 - **Sem janela do NitroSense.** O CoolBoost é alternado pela mesma chamada de firmware que o NitroSense usa, e a configuração do próprio NitroSense é mantida em sincronia, então o app sempre mostra o estado certo.
 
 ## Compatibilidade

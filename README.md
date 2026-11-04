@@ -29,7 +29,7 @@
 
 - **One-click on/off:** left-click the tray icon to toggle CoolBoost instantly. No admin prompt.
 - **Pause anytime:** *Pause automation* in the menu stops all automatic switching until you resume it.
-- **Tray icon (NitroSense style):** red fan = ON, grey fan = OFF, green badge = game running. Right-click for all the options.
+- **Tray icon (NitroSense style):** red fan = ON, grey fan = OFF, green badge = game running, amber pause badge = automation paused. Right-click for all the options.
 - **No NitroSense window.** CoolBoost is switched through the same firmware call NitroSense uses, and NitroSense's own setting is kept in sync, so the app always shows the right state.
 
 ## Compatibility

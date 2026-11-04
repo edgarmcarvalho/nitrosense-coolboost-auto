@@ -27,7 +27,7 @@ function Get-Cfg {
   $c
 }
 function Save-Cfg($c){ ConvertTo-Json -InputObject $c -Compress | Set-Content $cfgPath -Encoding UTF8; $script:cfg=$c; $script:last='' }
-function Set-Cfg($key,$val){ $c=Get-Cfg; $c[$key]=$val; Save-Cfg $c }
+function Set-Cfg($key,$val){ $c=Get-Cfg; $c[$key]=$val; Save-Cfg $c; $script:cfg=$c }
 function Restore-Pending { try { (Test-Path $savedPath) -and ((Get-Content $savedPath -Raw).Trim() -eq '1') } catch { $false } }
 function On-AC { [Windows.Forms.SystemInformation]::PowerStatus.PowerLineStatus -ne 'Offline' }
 $script:cfg = Get-Cfg
@@ -165,7 +165,7 @@ $traySz = [Math]::Max(16, [Windows.Forms.SystemInformation]::SmallIconSize.Width
 function Load-Icon($name) {
   try { New-Object Drawing.Icon("$env:ProgramData\CoolBoostAuto\$name.ico", $traySz, $traySz) } catch { [Drawing.SystemIcons]::Application }
 }
-$icons=@{ '1True'=(Load-Icon 'tray_on_game'); '1False'=(Load-Icon 'tray_on'); '0True'=(Load-Icon 'tray_off_game'); '0False'=(Load-Icon 'tray_off') }
+$icons=@{ '1True'=(Load-Icon 'tray_on_game'); '1False'=(Load-Icon 'tray_on'); '0True'=(Load-Icon 'tray_off_game'); '0False'=(Load-Icon 'tray_off'); '1P'=(Load-Icon 'tray_on_paused'); '0P'=(Load-Icon 'tray_off_paused') }
 $ni = New-Object Windows.Forms.NotifyIcon
 $ni.Icon = $icons['0False']; $ni.Visible = $true
 $script:last=''
@@ -185,7 +185,7 @@ function Refresh {
   $key="$cb|$ac|$($c.paused)|$($script:gs.active)|$($script:gs.override)|$($script:gs.name)"
   if ($key -eq $script:last) { return }
   $script:last=$key
-  $ni.Icon = $icons["$([int]($cb -eq 1))$([bool]$script:gs.active)"]
+  $ni.Icon = $icons["$([int]($cb -eq 1))$(if ($script:cfg.paused) { 'P' } else { [bool]$script:gs.active })"]   # paused badge wins: no rule acts while paused
   $t = "CoolBoost Auto`n" + (Get-StatusText -Short)
   if ($t.Length -gt 63) { $t=$t.Substring(0,60)+'...' }
   $ni.Text=$t
@@ -226,7 +226,7 @@ $miAdd = New-MenuItem 'Add a running app' $null
 $miIgnore = New-MenuItem 'Ignore a game' $null
 $miIgnored = New-MenuItem 'Ignored apps' $null
 $miGames.DropDownItems.AddRange([Windows.Forms.ToolStripItem[]]@($miDetected, (New-Sep), $miAdd, $miIgnore, $miIgnored))
-$miPause = New-MenuItem 'Pause automation' { $p = -not $script:cfg.paused; Set-Cfg 'paused' $p; if ($p) { TLog 'Automation paused' } else { TLog 'Automation resumed'; Run-Auto } }
+$miPause = New-MenuItem 'Pause automation' { $p = -not $script:cfg.paused; Set-Cfg 'paused' $p; if ($p) { TLog 'Automation paused' } else { TLog 'Automation resumed'; Run-Auto }; $script:last=''; Refresh }
 $miStart = New-MenuItem 'Start with Windows' { Set-Cfg 'startWithWindows' (-not $script:cfg.startWithWindows) }
 $miOpenNS = New-MenuItem 'Open NitroSense' { Open-NitroSense }
 $miLogs = New-MenuItem 'Open log' $null

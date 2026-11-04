@@ -50,7 +50,7 @@ $src = Join-Path $PSScriptRoot 'src'
 $PF  = Join-Path $env:ProgramFiles 'CoolBoostAuto'
 $PD  = Join-Path $env:ProgramData  'CoolBoostAuto'
 $assets = Join-Path $PSScriptRoot 'assets'
-$icons = 'app.ico', 'tray_on.ico', 'tray_off.ico', 'tray_on_game.ico', 'tray_off_game.ico'
+$icons = 'app.ico', 'tray_on.ico', 'tray_off.ico', 'tray_on_game.ico', 'tray_off_game.ico', 'tray_on_paused.ico', 'tray_off_paused.ico'
 
 Write-Host "`nCoolBoost Auto installer`n" -ForegroundColor White
 
