@@ -1,0 +1,55 @@
+name: Build installer and release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build setup wizard
+        shell: pwsh
+        run: |
+          $ver = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.0.0-dev' }
+          "VERSION=$ver" | Out-File $env:GITHUB_ENV -Append
+          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe", "$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { throw 'ISCC.exe not found' }
+          & $iscc.FullName "/DAppVersion=$ver" installer\setup.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
+
+      - name: Package scripts zip
+        shell: pwsh
+        run: |
+          $stage = "stage\nitrosense-coolboost-auto-$env:VERSION"
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item install.ps1, uninstall.ps1, README.md, README.pt-BR.md, LICENSE $stage
+          Copy-Item src, assets $stage -Recurse
+          Compress-Archive -Path $stage -DestinationPath "dist\CoolBoostAuto-Scripts-$env:VERSION.zip"
+          Get-FileHash dist\* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Out-File dist\SHA256SUMS.txt -Encoding ascii
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = "release-notes\$env:GITHUB_REF_NAME.md"
+          $ghArgs = @('release', 'create', $env:GITHUB_REF_NAME) + (Get-ChildItem dist -File | ForEach-Object FullName) + @('--title', "CoolBoost Auto $env:GITHUB_REF_NAME", '--notes-file', $notes)
+          if ($env:VERSION -match '^0\.' -or $env:VERSION -match '-') { $ghArgs += '--prerelease' }   # 0.x = beta
+          gh @ghArgs
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type != 'tag'
+        with:
+          name: dist
+          path: dist/

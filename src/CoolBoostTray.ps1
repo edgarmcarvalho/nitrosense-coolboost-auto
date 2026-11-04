@@ -3,7 +3,6 @@
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 Add-Type -Namespace CB -Name Dpi -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
 [void][CB.Dpi]::SetProcessDPIAware()
-. "$env:ProgramData\CoolBoostAuto\CoolBoostIcon.ps1"
 $mtx = New-Object Threading.Mutex($false,'Local\CoolBoostTray')
 if (-not $mtx.WaitOne(0)) { exit }
 $regPath   = 'HKLM:\SOFTWARE\OEM\NitroSense\FanControl'
@@ -155,8 +154,11 @@ function Game-Tick {
 
 # ---------- icon ----------
 $traySz = [Math]::Max(16, [Windows.Forms.SystemInformation]::SmallIconSize.Width)
-function New-Icon([bool]$on,[bool]$game){ [Drawing.Icon]::FromHandle((New-CBBitmap $traySz $on $game).GetHicon()) }
-$icons=@{ '1True'=(New-Icon $true $true); '1False'=(New-Icon $true $false); '0True'=(New-Icon $false $true); '0False'=(New-Icon $false $false) }
+# icons ship as multi-size .ico files; Windows picks the frame for the tray's real size
+function Load-Icon($name) {
+  try { New-Object Drawing.Icon("$env:ProgramData\CoolBoostAuto\$name.ico", $traySz, $traySz) } catch { [Drawing.SystemIcons]::Application }
+}
+$icons=@{ '1True'=(Load-Icon 'tray_on_game'); '1False'=(Load-Icon 'tray_on'); '0True'=(Load-Icon 'tray_off_game'); '0False'=(Load-Icon 'tray_off') }
 $ni = New-Object Windows.Forms.NotifyIcon
 $ni.Icon = $icons['0False']; $ni.Visible = $true
 $script:last=''

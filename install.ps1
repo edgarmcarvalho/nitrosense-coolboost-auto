@@ -19,9 +19,15 @@
   Install even if the compatibility checks fail. Not recommended.
 .PARAMETER Quiet
   Don't wait for Enter at the end.
+.PARAMETER NoStartTray
+  Don't start the tray icon at the end (the setup wizard starts it itself).
+.PARAMETER CheckOnly
+  Only run the compatibility checks. Exit code 0 = supported, 2 = CoolBoost interface missing/unsupported, 3 = NitroSense missing.
+.PARAMETER LogPath
+  Also write everything to this log file.
 #>
 [CmdletBinding()]
-param([switch]$NoAutostart, [switch]$Force, [switch]$Quiet)
+param([switch]$NoAutostart, [switch]$Force, [switch]$Quiet, [switch]$NoStartTray, [switch]$CheckOnly, [string]$LogPath)
 $ErrorActionPreference = 'Stop'
 
 # ---------- self-elevate ----------
@@ -29,20 +35,22 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 if (-not $isAdmin) {
   $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
   if ($NoAutostart) { $a += '-NoAutostart' }; if ($Force) { $a += '-Force' }; if ($Quiet) { $a += '-Quiet' }
+  if ($NoStartTray) { $a += '-NoStartTray' }; if ($CheckOnly) { $a += '-CheckOnly' }; if ($LogPath) { $a += '-LogPath', "`"$LogPath`"" }
   Start-Process powershell.exe -Verb RunAs -ArgumentList $a
   return
 }
 
 function Step($m) { Write-Host "==> $m" -ForegroundColor Cyan }
 function Ok($m)   { Write-Host "    $m" -ForegroundColor Green }
-function Done($code) { if (-not $Quiet) { Read-Host "`nPress Enter to close" | Out-Null }; exit $code }
-function Fail($m) { Write-Host "`nERROR: $m" -ForegroundColor Red; Done 1 }
+function Done($code) { if ($LogPath) { try { Stop-Transcript | Out-Null } catch {} }; if (-not $Quiet) { Read-Host "`nPress Enter to close" | Out-Null }; exit $code }
+function Fail($m, $code = 1) { Write-Host "`nERROR: $m" -ForegroundColor Red; Done $code }
+if ($LogPath) { try { Start-Transcript -Path $LogPath -Force | Out-Null } catch {} }
 
 $src = Join-Path $PSScriptRoot 'src'
 $PF  = Join-Path $env:ProgramFiles 'CoolBoostAuto'
 $PD  = Join-Path $env:ProgramData  'CoolBoostAuto'
-$files = 'CoolBoostSys.ps1', 'CoolBoostTray.ps1', 'CoolBoostIcon.ps1', 'Start CoolBoost Tray.vbs'
-foreach ($f in $files) { if (-not (Test-Path (Join-Path $src $f))) { Fail "Missing file src\$f - extract the whole download before running install.ps1." } }
+$assets = Join-Path $PSScriptRoot 'assets'
+$icons = 'app.ico', 'tray_on.ico', 'tray_off.ico', 'tray_on_game.ico', 'tray_off_game.ico'
 
 Write-Host "`nnitrosense-coolboost-auto installer`n" -ForegroundColor White
 
@@ -53,10 +61,10 @@ try {
   $r  = [uint64](Invoke-CimMethod -InputObject $ap -MethodName GetFunction -Arguments @{ uiInput = [uint32]0x207 }).uiOutput
 } catch { $ap = $null; $r = $null }
 if (-not $ap) {
-  if (-not $Force) { Fail "Acer's CoolBoost interface (WMI class APGeAction) was not found. This tool only works on Acer Nitro / Predator laptops that have it." }
+  if (-not $Force) { Fail "Acer's CoolBoost interface (WMI class APGeAction) was not found. This tool only works on Acer Nitro / Predator laptops that have it." 2 }
   Write-Warning 'APGeAction not found - continuing because of -Force.'
 } elseif (($r -band 0xFF) -ne 0) {
-  if (-not $Force) { Fail ("The CoolBoost status query returned an error (0x{0:X}). This model doesn't seem to support CoolBoost through this interface." -f $r) }
+  if (-not $Force) { Fail ("The CoolBoost status query returned an error (0x{0:X}). This model doesn't seem to support CoolBoost through this interface." -f $r) 2 }
   Write-Warning ('CoolBoost query returned 0x{0:X} - continuing because of -Force.' -f $r)
 } else {
   Ok ("Supported. CoolBoost is currently {0}." -f $(if ((($r -shr 8) -band 0xFF) -eq 1) { 'ON' } else { 'OFF' }))
@@ -65,7 +73,11 @@ if (-not $ap) {
 Step 'Checking for NitroSense'
 if (Test-Path 'HKLM:\SOFTWARE\OEM\NitroSense\FanControl') { Ok 'NitroSense found.' }
 elseif ($Force) { Write-Warning "NitroSense settings not found - the tray icon won't be able to show CoolBoost's state." }
-else { Fail "NitroSense doesn't seem to be installed (its settings key is missing). Install NitroSense from the Microsoft Store / Acer support first." }
+else { Fail "NitroSense doesn't seem to be installed (its settings key is missing). Install NitroSense from the Microsoft Store / Acer support first." 3 }
+if ($CheckOnly) { Done 0 }
+
+$files = @(Join-Path $src 'CoolBoostSys.ps1'; Join-Path $src 'CoolBoostTray.ps1'; Join-Path $src 'Start CoolBoost Tray.vbs') + ($icons | ForEach-Object { Join-Path $assets $_ })
+foreach ($f in $files) { if (-not (Test-Path $f)) { Fail "Missing file $f - extract the whole download before running install.ps1." } }
 
 # ---------- stop a running tray icon (upgrade) ----------
 Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -match 'CoolBoostTray\.ps1' } |
@@ -75,7 +87,10 @@ Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $
 Step 'Installing files'
 New-Item -ItemType Directory -Force -Path $PF, $PD | Out-Null
 Copy-Item (Join-Path $src 'CoolBoostSys.ps1') $PF -Force
-foreach ($f in 'CoolBoostTray.ps1', 'CoolBoostIcon.ps1', 'Start CoolBoost Tray.vbs') { Copy-Item (Join-Path $src $f) $PD -Force }
+foreach ($f in 'CoolBoostTray.ps1', 'Start CoolBoost Tray.vbs') { Copy-Item (Join-Path $src $f) $PD -Force }
+foreach ($f in $icons) { Copy-Item (Join-Path $assets $f) $PD -Force }
+# files from older versions
+Remove-Item (Join-Path $PD 'CoolBoostIcon.ps1'), (Join-Path $PD 'CoolBoostApp.ico') -Force -ErrorAction SilentlyContinue
 Get-ChildItem $PF, $PD -File | Unblock-File
 
 $sidAdmins = New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544'
@@ -112,10 +127,6 @@ foreach ($w in $settings, (Join-Path $PD 'tray.log')) {
 Ok "Worker:    $PF (admin-only)"
 Ok "Tray icon: $PD"
 
-Step 'Creating the app icon'
-. (Join-Path $PD 'CoolBoostIcon.ps1')
-Save-CBIco (Join-Path $PD 'CoolBoostApp.ico') @(16, 20, 24, 32, 40, 48, 64, 96, 128, 256) $true $false
-Ok 'Done.'
 
 # ---------- scheduled tasks ----------
 Step 'Registering scheduled tasks'
@@ -152,7 +163,7 @@ function Lnk($path) {
   $l = $sh.CreateShortcut($path)
   $l.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
   $l.Arguments = "`"$(Join-Path $PD 'Start CoolBoost Tray.vbs')`""
-  $l.WorkingDirectory = $PD; $l.IconLocation = "$(Join-Path $PD 'CoolBoostApp.ico'),0"; $l.Description = 'CoolBoost tray icon'
+  $l.WorkingDirectory = $PD; $l.IconLocation = "$(Join-Path $PD 'app.ico'),0"; $l.Description = 'CoolBoost tray icon'
   $l.Save()
 }
 $commonPrograms = [Environment]::GetFolderPath('CommonPrograms')
@@ -167,9 +178,11 @@ $autoLnk = Join-Path $commonStartup 'CoolBoost Tray.lnk'
 if ($NoAutostart) { Remove-Item $autoLnk -Force -ErrorAction SilentlyContinue; Ok 'Autostart: off' } else { Lnk $autoLnk; Ok 'Autostart at login: on' }
 
 # ---------- start the tray icon as the normal (non-admin) user ----------
-Step 'Starting the tray icon'
-Start-Process explorer.exe -ArgumentList "`"$startLnk`""
-Ok 'Look for the snowflake icon next to the clock (it may be under the ^ arrow).'
+if (-not $NoStartTray) {
+  Step 'Starting the tray icon'
+  Start-Process explorer.exe -ArgumentList "`"$startLnk`""
+  Ok 'Look for the red fan icon next to the clock (it may be under the ^ arrow).'
+}
 
 Write-Host "`nInstalled. Right-click the tray icon for options. To remove: run uninstall.ps1." -ForegroundColor Green
 Done 0
