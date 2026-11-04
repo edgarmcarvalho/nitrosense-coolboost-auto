@@ -11,10 +11,10 @@
       CoolBoostToggle - toggle  (runnable by normal users, used by the tray icon)
       CoolBoostOn     - set ON  (idem)
       CoolBoostOff    - set OFF (idem)
-  - Adds "CoolBoost Auto" to the Start menu and (unless -NoAutostart) to Startup.
+  - Adds "CoolBoost Auto" to the Start menu and Startup ("Start with Windows" can be switched off in the tray menu).
   Re-running it upgrades an existing install and keeps your settings.
 .PARAMETER NoAutostart
-  Don't start the tray icon automatically at login.
+  Turn 'Start with Windows' off (it can be switched back on in the tray menu).
 .PARAMETER Force
   Install even if the compatibility checks fail. Not recommended.
 .PARAMETER Quiet
@@ -89,6 +89,9 @@ New-Item -ItemType Directory -Force -Path $PF, $PD | Out-Null
 Copy-Item (Join-Path $src 'CoolBoostSys.ps1') $PF -Force
 foreach ($f in 'CoolBoostTray.ps1', 'Start CoolBoost Auto.vbs') { Copy-Item (Join-Path $src $f) $PD -Force }
 foreach ($f in $icons) { Copy-Item (Join-Path $assets $f) $PD -Force }
+# version shown in the tray menu (stamped by the release build; 'dev' for local installs)
+$verFile = Join-Path $src 'version.txt'
+if (Test-Path $verFile) { Copy-Item $verFile $PD -Force } else { Set-Content (Join-Path $PD 'version.txt') 'dev' -Encoding ASCII }
 # files from older versions
 Remove-Item (Join-Path $PD 'CoolBoostIcon.ps1'), (Join-Path $PD 'CoolBoostApp.ico'), (Join-Path $PD 'Start CoolBoost Tray.vbs') -Force -ErrorAction SilentlyContinue
 Get-ChildItem $PF, $PD -File | Unblock-File
@@ -118,8 +121,14 @@ foreach ($f in Get-ChildItem $PD -File) {
 # settings + tray log must stay writable by the user running the tray icon
 $settings = Join-Path $PD 'settings.json'
 if (-not (Test-Path $settings)) {
-  '{"offOnBattery":true,"onPlugIn":"restore","gameMode":true,"gamesInclude":[],"gamesExclude":[]}' | Set-Content $settings -Encoding UTF8
+  '{"offOnBattery":true,"onPlugIn":"restore","gameMode":true,"paused":false,"startWithWindows":true,"gamesInclude":[],"gamesExclude":[]}' | Set-Content $settings -Encoding UTF8
 }
+# new settings: keep the user's choices on upgrade; -NoAutostart turns "Start with Windows" off
+$cfgObj = Get-Content $settings -Raw | ConvertFrom-Json
+if ($NoAutostart) { $cfgObj | Add-Member -NotePropertyName startWithWindows -NotePropertyValue $false -Force }
+elseif ($null -eq $cfgObj.startWithWindows) { $cfgObj | Add-Member -NotePropertyName startWithWindows -NotePropertyValue $true -Force }
+if ($null -eq $cfgObj.paused) { $cfgObj | Add-Member -NotePropertyName paused -NotePropertyValue $false -Force }
+$cfgObj | ConvertTo-Json -Compress | Set-Content $settings -Encoding UTF8
 foreach ($w in $settings, (Join-Path $PD 'tray.log')) {
   if (-not (Test-Path $w)) { New-Item -ItemType File -Path $w | Out-Null }
   $fa = Get-Acl $w; $fa.AddAccessRule((Rule $sidUsers 'Modify' ([Security.AccessControl.InheritanceFlags]::None))); Set-Acl $w $fa
@@ -154,15 +163,18 @@ foreach ($m in 'Toggle', 'On', 'Off') {
   $t = $svc.GetFolder('\').GetTask($name); $sd = $t.GetSecurityDescriptor(4)
   if ($sd -notmatch ';;;AU\)') { $t.SetSecurityDescriptor(($sd -replace '(D:[A-Z]*)', '$1(A;;GRGX;;;AU)'), 0) }
 }
+# the tray also runs CoolBoostAuto (at startup and when automation resumes), so let normal users start it too
+$t = $svc.GetFolder('\').GetTask('CoolBoostAuto'); $sd = $t.GetSecurityDescriptor(4)
+if ($sd -notmatch ';;;AU\)') { $t.SetSecurityDescriptor(($sd -replace '(D:[A-Z]*)', '$1(A;;GRGX;;;AU)'), 0) }
 Ok 'CoolBoostAuto, CoolBoostToggle, CoolBoostOn, CoolBoostOff'
 
 # ---------- shortcuts ----------
 Step 'Creating shortcuts'
 $sh = New-Object -ComObject WScript.Shell
-function Lnk($path) {
+function Lnk($path, $extraArgs = '') {
   $l = $sh.CreateShortcut($path)
   $l.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
-  $l.Arguments = "`"$(Join-Path $PD 'Start CoolBoost Auto.vbs')`""
+  $l.Arguments = "`"$(Join-Path $PD 'Start CoolBoost Auto.vbs')`"$extraArgs"
   $l.WorkingDirectory = $PD; $l.IconLocation = "$(Join-Path $PD 'app.ico'),0"; $l.Description = 'CoolBoost Auto - automatic CoolBoost control'
   $l.Save()
 }
@@ -176,7 +188,7 @@ foreach ($d in $commonPrograms, $commonStartup) { Remove-Item (Join-Path $d 'Coo
 $startLnk = Join-Path $commonPrograms 'CoolBoost Auto.lnk'
 Lnk $startLnk; Ok 'Start menu: CoolBoost Auto'
 $autoLnk = Join-Path $commonStartup 'CoolBoost Auto.lnk'
-if ($NoAutostart) { Remove-Item $autoLnk -Force -ErrorAction SilentlyContinue; Ok 'Autostart: off' } else { Lnk $autoLnk; Ok 'Autostart at login: on' }
+Lnk $autoLnk ' /autostart'; Ok "Start with Windows: $(if ($NoAutostart) { 'off' } else { 'on' }) (can be changed in the tray menu)"
 
 # ---------- start the tray icon as the normal (non-admin) user ----------
 if (-not $NoStartTray) {

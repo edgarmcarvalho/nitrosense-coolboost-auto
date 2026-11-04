@@ -32,6 +32,7 @@ jobs:
         run: |
           $ver = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.0.0-dev' }
           "VERSION=$ver" | Out-File $env:GITHUB_ENV -Append
+          Set-Content src\version.txt $ver -Encoding ascii   # shown in the tray menu
           $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe", "$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $iscc) { throw 'ISCC.exe not found' }
           & $iscc.FullName "/DAppVersion=$ver" installer\setup.iss

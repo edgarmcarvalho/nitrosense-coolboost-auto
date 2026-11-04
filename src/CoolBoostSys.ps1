@@ -9,10 +9,11 @@ $cfgPath="$env:ProgramData\CoolBoostAuto\settings.json"
 function Log($m){ "$(Get-Date -f 'yyyy-MM-dd HH:mm:ss') $m" | Out-File $log -Append -Encoding utf8 }
 if ((Test-Path $log) -and (Get-Item $log).Length -gt 200KB) { Get-Content $log -Tail 300 | Set-Content $log }
 function Get-Cfg {
-  $c=@{offOnBattery=$true; onPlugIn='restore'}
+  $c=@{offOnBattery=$true; onPlugIn='restore'; paused=$false}
   try {
     $j=Get-Content $cfgPath -Raw | ConvertFrom-Json
     if ($j.offOnBattery -is [bool]) { $c.offOnBattery=$j.offOnBattery }
+    if ($j.paused -is [bool]) { $c.paused=$j.paused }
     if ($j.onPlugIn -is [string] -and $j.onPlugIn -in 'restore','on','off','keep') { $c.onPlugIn=$j.onPlugIn }
   } catch {}
   $c
@@ -41,6 +42,10 @@ try {
   if ($again -ne $onAC) { Start-Sleep 1; $onAC = Get-OnAC; Log "Power state changed while checking; using: $(if($onAC){'AC'}else{'battery'})" }
   try { $wmiAC = [bool](Get-CimInstance -Namespace root\WMI -ClassName BatteryStatus | Select -First 1).PowerOnline; if ($wmiAC -ne $onAC) { Log "Note: Windows says $(if($onAC){'AC'}else{'battery'}), battery driver says $(if($wmiAC){'AC'}else{'battery'}); using Windows" } } catch {}
   $cfg=Get-Cfg
+  # Pause automation / Exit: change nothing. last_power is not updated either, so when the app starts
+  # again (or automation resumes) the rules catch up with whatever changed in the meantime.
+  $trayUp = [bool](Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -EA SilentlyContinue | ? { $_.CommandLine -match 'CoolBoostTray\.ps1' })
+  if ($cfg.paused -or -not $trayUp) { Log "Power is now $(if($onAC){'AC'}else{'battery'}); no action ($(if($cfg.paused){'automation paused'}else{'CoolBoost Auto is not running'}))"; return }
   $prevPwr = if (Test-Path $lastPwr) { (Get-Content $lastPwr -Raw).Trim() } else { '' }
   Set-Content $lastPwr ($(if($onAC){'ac'}else{'battery'}))
   if (-not $onAC) {

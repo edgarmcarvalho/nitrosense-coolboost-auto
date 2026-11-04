@@ -2,3 +2,4 @@
 # build output
 dist/
 stage/
+src/version.txt

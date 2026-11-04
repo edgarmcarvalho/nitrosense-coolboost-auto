@@ -1,5 +1,6 @@
 ﻿# CoolBoost Auto - tray icon (runs as the logged-in user)
 # https://github.com/edgarmcarvalho/nitrosense-coolboost-auto  -  MIT License
+param([switch]$Autostart)   # passed by the startup shortcut
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 Add-Type -Namespace CB -Name Dpi -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
 [void][CB.Dpi]::SetProcessDPIAware()
@@ -12,12 +13,14 @@ $savedPath = "$env:ProgramFiles\CoolBoostAuto\saved_state.txt"
 # ---------- settings ----------
 function Get-CB { try { [int](Get-ItemProperty $regPath).CoolBoostMode } catch { -1 } }
 function Get-Cfg {
-  $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; gamesInclude=@(); gamesExclude=@()}
+  $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; paused=$false; startWithWindows=$true; gamesInclude=@(); gamesExclude=@()}
   try {
     $j=Get-Content $cfgPath -Raw | ConvertFrom-Json
     if ($j.offOnBattery -is [bool]) { $c.offOnBattery=$j.offOnBattery }
     if ($j.onPlugIn -is [string] -and $j.onPlugIn -in 'restore','on','off','keep') { $c.onPlugIn=$j.onPlugIn }
     if ($j.gameMode -is [bool]) { $c.gameMode=$j.gameMode }
+    if ($j.paused -is [bool]) { $c.paused=$j.paused }
+    if ($j.startWithWindows -is [bool]) { $c.startWithWindows=$j.startWithWindows }
     if ($j.gamesInclude) { $c.gamesInclude=@($j.gamesInclude | % { [string]$_ }) }
     if ($j.gamesExclude) { $c.gamesExclude=@($j.gamesExclude | % { [string]$_ }) }
   } catch {}
@@ -28,6 +31,7 @@ function Set-Cfg($key,$val){ $c=Get-Cfg; $c[$key]=$val; Save-Cfg $c }
 function Restore-Pending { try { (Test-Path $savedPath) -and ((Get-Content $savedPath -Raw).Trim() -eq '1') } catch { $false } }
 function On-AC { [Windows.Forms.SystemInformation]::PowerStatus.PowerLineStatus -ne 'Offline' }
 $script:cfg = Get-Cfg
+if ($Autostart -and -not $script:cfg.startWithWindows) { exit }   # 'Start with Windows' is off
 
 # ---------- game detection ----------
 $script:winGames=@{}; $script:roots=@(); $script:winAt=[datetime]::MinValue; $script:rootsAt=[datetime]::MinValue
@@ -127,14 +131,14 @@ function Game-Tick {
 
   if (($now-$script:scanAt).TotalSeconds -ge 4) {
     $script:scanAt=$now
-    $games = if ($script:cfg.gameMode) { @(Get-RunningGames) } else { @() }
+    $games = if ($script:cfg.gameMode -and -not $script:cfg.paused) { @(Get-RunningGames) } else { @() }
     if ($games.Count -gt 0 -and -not $script:gs.active) {
       $script:pendingOff=$false
       $script:gs=@{active=$true; preGame=$cb; weTurnedOn=$false; override=$false; name=(Get-Name $games[0]); paths=$games}
       TLog "Game started: $($script:gs.name) [$($games -join '; ')] CoolBoost=$cb AC=$ac"
       $script:last=''
     } elseif ($games.Count -eq 0 -and $script:gs.active) {
-      $revert = $script:gs.weTurnedOn -and -not $script:gs.override -and $script:gs.preGame -eq 0
+      $revert = $script:gs.weTurnedOn -and -not $script:gs.override -and $script:gs.preGame -eq 0 -and -not $script:cfg.paused
       TLog "Game closed: $($script:gs.name) (revert to OFF: $revert)"
       if ($revert) { $script:pendingOff=$true }
       $script:gs=New-GS; $script:last=''
@@ -165,51 +169,38 @@ $icons=@{ '1True'=(Load-Icon 'tray_on_game'); '1False'=(Load-Icon 'tray_on'); '0
 $ni = New-Object Windows.Forms.NotifyIcon
 $ni.Icon = $icons['0False']; $ni.Visible = $true
 $script:last=''
+function Get-StatusText([switch]$Short) {
+  $d = " $([char]0x00B7) "
+  $c = $script:cfg; $cb = Get-CB
+  $s = switch ($cb) { 1 {'CoolBoost ON'} 0 {'CoolBoost OFF'} default {'CoolBoost ?'} }
+  $s += $d + $(if (On-AC) { 'plugged in' } else { 'on battery' })
+  if ($c.paused) { $s += $d + $(if ($Short) { 'paused' } else { 'automation paused' }) }
+  elseif ($script:gs.active -and $script:gs.override) { $s += $d + $(if ($Short) { 'manual (game)' } else { 'manual until the game closes' }) }
+  elseif ($script:gs.active) { $s += $d + "gaming: $($script:gs.name)" }
+  else { $s += $d + 'automatic' }
+  $s
+}
 function Refresh {
-  $cb=Get-CB; $pend=Restore-Pending; $c=$script:cfg
-  $key="$cb|$pend|$($c.onPlugIn)|$($c.offOnBattery)|$($script:gs.active)|$($script:gs.override)|$($script:gs.name)"
+  $cb=Get-CB; $c=$script:cfg; $ac=On-AC
+  $key="$cb|$ac|$($c.paused)|$($script:gs.active)|$($script:gs.override)|$($script:gs.name)"
   if ($key -eq $script:last) { return }
   $script:last=$key
   $ni.Icon = $icons["$([int]($cb -eq 1))$([bool]$script:gs.active)"]
-  $t = switch ($cb) { 1 {'CoolBoost ON'} 0 {'CoolBoost OFF'} default {'CoolBoost ?'} }
-  if ($script:gs.active) { $t += " | Gaming: $($script:gs.name)"; if ($script:gs.override) { $t += ' (manual)' } }
-  else {
-    $plug = switch ($c.onPlugIn) { 'on' {'ON'} 'off' {'OFF'} 'keep' {'unchanged'} default { if ($pend) {'ON (restore)'} else {'previous'} } }
-    $t += " | plug-in: $plug"
-  }
-  $t = "CoolBoost Auto`n$t"
+  $t = "CoolBoost Auto`n" + (Get-StatusText -Short)
   if ($t.Length -gt 63) { $t=$t.Substring(0,60)+'...' }
   $ni.Text=$t
 }
 
 # ---------- menu ----------
 function New-MenuItem($text,$onClick){ $m=New-Object Windows.Forms.ToolStripMenuItem $text; if($onClick){ $m.add_Click($onClick) }; $m }
+function New-Info($text){ $m=New-MenuItem $text $null; $m.Enabled=$false; $m }
+function New-Sep { New-Object Windows.Forms.ToolStripSeparator }
+function Set-Bold($m){ $m.Font = New-Object Drawing.Font($m.Font, [Drawing.FontStyle]::Bold) }
 function Add-Include($path){ $cf=Get-Cfg; $cf.gamesInclude=@(@($cf.gamesInclude) + $path | Select -Unique); $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 function Add-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@(@($cf.gamesExclude) + $path | Select -Unique); $cf.gamesInclude=@($cf.gamesInclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
-$menu = New-Object Windows.Forms.ContextMenuStrip
-$miToggle = New-MenuItem 'Toggle CoolBoost' { Do-Toggle }
-$miToggle.Font = New-Object Drawing.Font($miToggle.Font, [Drawing.FontStyle]::Bold)
-$miStatus = New-MenuItem 'status' $null; $miStatus.Enabled=$false
-[void]$menu.Items.Add($miToggle); [void]$menu.Items.Add($miStatus); [void]$menu.Items.Add('-')
-
-$miAuto = New-MenuItem 'Automation' $null
-$miOff = New-MenuItem 'Turn off on battery' { Set-Cfg 'offOnBattery' (-not $script:cfg.offOnBattery) }
-$miPlugHdr = New-MenuItem 'When plugged in:' $null; $miPlugHdr.Enabled=$false
-$plugItems=[ordered]@{ restore='Restore previous state'; on='Always turn ON'; off='Always turn OFF'; keep='Leave it as it is' }
-$plugMenu=@{}
-foreach($k in $plugItems.Keys){ $it=New-MenuItem ('    '+$plugItems[$k]) { param($s,$e) Set-Cfg 'onPlugIn' ([string]$s.Tag) }; $it.Tag=$k; $plugMenu[$k]=$it }
-$miGame = New-MenuItem 'Turn ON while gaming' { Set-Cfg 'gameMode' (-not $script:cfg.gameMode) }
-$miMark = New-MenuItem 'Mark a running app as a game' $null
-$miUnmark = New-MenuItem 'Stop treating as a game' $null
-[void]$miAuto.DropDownItems.Add($miOff)
-[void]$miAuto.DropDownItems.Add((New-Object Windows.Forms.ToolStripSeparator))
-[void]$miAuto.DropDownItems.Add($miPlugHdr)
-foreach($k in $plugItems.Keys){ [void]$miAuto.DropDownItems.Add($plugMenu[$k]) }
-[void]$miAuto.DropDownItems.Add((New-Object Windows.Forms.ToolStripSeparator))
-[void]$miAuto.DropDownItems.Add($miGame)
-[void]$miAuto.DropDownItems.Add($miMark)
-[void]$miAuto.DropDownItems.Add($miUnmark)
-[void]$menu.Items.Add($miAuto); [void]$menu.Items.Add('-')
+function Remove-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
+# re-apply the plug/unplug rules now (used at startup and when automation resumes)
+function Run-Auto { Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto' }
 function Open-NitroSense {
   # NitroSense / PredatorSense package names differ between models and versions, so look it up
   $pkg = Get-AppxPackage -Name 'AcerIncorporated.*' -EA SilentlyContinue | ? { $_.Name -match 'NitroSense|PredatorSense' } | Select -First 1
@@ -217,44 +208,73 @@ function Open-NitroSense {
   $appId = 'App'; try { $appId = @((Get-AppxPackageManifest $pkg).Package.Applications.Application)[0].Id } catch {}
   Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!$appId"
 }
-[void]$menu.Items.Add((New-MenuItem 'Open NitroSense' { Open-NitroSense }))
+$appVersion = 'dev'; try { $v = (Get-Content "$env:ProgramData\CoolBoostAuto\version.txt" -Raw -EA Stop).Trim(); if ($v) { $appVersion = $v } } catch {}
+
+$menu = New-Object Windows.Forms.ContextMenuStrip
+$miTitle  = New-Info "CoolBoost Auto $appVersion"; Set-Bold $miTitle
+$miStatus = New-Info 'status'
+$miToggle = New-MenuItem 'Turn CoolBoost ON' { Do-Toggle }; Set-Bold $miToggle
+$miBattery = New-MenuItem 'On battery: turn CoolBoost off' { Set-Cfg 'offOnBattery' (-not $script:cfg.offOnBattery) }
+$miPlug = New-MenuItem 'When plugged in' $null
+$plugItems = [ordered]@{ restore='Restore state from before unplugging'; on='Always turn CoolBoost ON'; off='Always turn CoolBoost OFF'; keep='Keep the battery state' }
+$plugMenu = @{}
+foreach ($k in $plugItems.Keys) { $it=New-MenuItem $plugItems[$k] { param($s,$e) Set-Cfg 'onPlugIn' ([string]$s.Tag) }; $it.Tag=$k; $plugMenu[$k]=$it; [void]$miPlug.DropDownItems.Add($it) }
+$miGame = New-MenuItem 'While gaming: turn CoolBoost on (when plugged in)' { Set-Cfg 'gameMode' (-not $script:cfg.gameMode) }
+$miGames = New-MenuItem 'Games' $null
+$miDetected = New-Info 'No game running'
+$miAdd = New-MenuItem 'Add a running app' $null
+$miIgnore = New-MenuItem 'Ignore a game' $null
+$miIgnored = New-MenuItem 'Ignored apps' $null
+$miGames.DropDownItems.AddRange([Windows.Forms.ToolStripItem[]]@($miDetected, (New-Sep), $miAdd, $miIgnore, $miIgnored))
+$miPause = New-MenuItem 'Pause automation' { $p = -not $script:cfg.paused; Set-Cfg 'paused' $p; if ($p) { TLog 'Automation paused' } else { TLog 'Automation resumed'; Run-Auto } }
+$miStart = New-MenuItem 'Start with Windows' { Set-Cfg 'startWithWindows' (-not $script:cfg.startWithWindows) }
+$miOpenNS = New-MenuItem 'Open NitroSense' { Open-NitroSense }
 $miLogs = New-MenuItem 'Open log' $null
 [void]$miLogs.DropDownItems.Add((New-MenuItem 'Power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
 [void]$miLogs.DropDownItems.Add((New-MenuItem 'Gaming automation' { $p = "$env:ProgramData\CoolBoostAuto\tray.log"; if (-not (Test-Path $p)) { New-Item $p -ItemType File -Force | Out-Null }; Start-Process notepad $p }))
-[void]$menu.Items.Add($miLogs)
-[void]$menu.Items.Add('-')
-[void]$menu.Items.Add((New-MenuItem 'Exit tray icon' { $ni.Visible=$false; [Windows.Forms.Application]::Exit() }))
+$miExit = New-MenuItem 'Exit (stops all automation)' { TLog 'Exited - all automation stopped'; $ni.Visible=$false; [Windows.Forms.Application]::Exit() }
+$menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miStart, $miOpenNS, $miLogs, (New-Sep), $miExit))
 
 $skipProc='(?i)^(explorer|applicationframehost|textinputhost|systemsettings|shellexperiencehost|startmenuexperiencehost|searchhost|lockapp|powershell|pwsh|conhost|windowsterminal|nitrosense|predatorsense)$'
+function Fill-List($parent, $items, $emptyText) {
+  $parent.DropDownItems.Clear()
+  foreach ($i in $items) { [void]$parent.DropDownItems.Add($i) }
+  if ($parent.DropDownItems.Count -eq 0) { [void]$parent.DropDownItems.Add((New-Info $emptyText)) }
+}
 $menu.add_Opening({
-  $c=$script:cfg; $cb=Get-CB
+  $script:cfg=Get-Cfg; $c=$script:cfg; $cb=Get-CB
+  $miStatus.Text = Get-StatusText
   $miToggle.Text = if ($cb -eq 1) { 'Turn CoolBoost OFF' } else { 'Turn CoolBoost ON' }
-  $miStatus.Text = if ($script:gs.active) { "Gaming: $($script:gs.name)" + $(if($script:gs.override){' (manual control)'}else{''}) } else { 'No game running' }
-  $miOff.Checked=$c.offOnBattery
-  foreach($k in $plugMenu.Keys){ $plugMenu[$k].Checked=($k -eq $c.onPlugIn) }
-  $miGame.Checked=$c.gameMode
-  # mark: open-window apps not already detected as games
-  $miMark.DropDownItems.Clear(); $seen=@{}
-  foreach($p in (Get-Process -EA SilentlyContinue | ? { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -and $_.ProcessName -notmatch $skipProc })){
+  $miBattery.Checked = $c.offOnBattery
+  foreach ($k in $plugMenu.Keys) { $plugMenu[$k].Checked = ($k -eq $c.onPlugIn) }
+  $plugMenu['restore'].Text = if ($c.offOnBattery) { $plugItems['restore'] } else { $plugItems['restore'] + ' (needs the battery rule)' }
+  $miGame.Checked = $c.gameMode
+  $miPause.Checked = $c.paused
+  $miStart.Checked = $c.startWithWindows
+  # Games > Detected now
+  $miDetected.Text = if ($script:gs.active) { 'Detected now: ' + ((@($script:gs.paths) | % { Get-Name $_ } | Select -Unique) -join ', ') } else { 'No game running' }
+  # Games > Add a running app: open windows that aren't games yet
+  $add=@(); $seen=@{}
+  foreach ($p in (Get-Process -EA SilentlyContinue | ? { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -and $_.ProcessName -notmatch $skipProc })) {
     $path=[CB.ProcPaths]::GetPath($p.Id)
     if (-not $path -or $seen.ContainsKey($path) -or (Test-Game $path)) { continue }
     $seen[$path]=1
-    $title=$p.MainWindowTitle; if($title.Length -gt 45){ $title=$title.Substring(0,42)+'...' }
-    $it=New-MenuItem "$title  ($($p.ProcessName).exe)" { param($s,$e) Add-Include ([string]$s.Tag) }
-    $it.Tag=$path; [void]$miMark.DropDownItems.Add($it)
+    $title=$p.MainWindowTitle; if ($title.Length -gt 45) { $title=$title.Substring(0,42)+'...' }
+    $it=New-MenuItem "$title  ($($p.ProcessName).exe)" { param($s,$e) Add-Include ([string]$s.Tag) }; $it.Tag=$path; $add += $it
   }
-  if ($miMark.DropDownItems.Count -eq 0) { $x=New-MenuItem '(no open apps to add)' $null; $x.Enabled=$false; [void]$miMark.DropDownItems.Add($x) }
-  # unmark: running games + manually added ones
-  $miUnmark.DropDownItems.Clear()
-  foreach($path in (@($script:gs.paths) + @($c.gamesInclude) | ? { $_ } | Select -Unique)){
-    $it=New-MenuItem "$(Get-Name $path)  ($(Split-Path $path -Leaf))" { param($s,$e) Add-Exclude ([string]$s.Tag) }
-    $it.Tag=$path; [void]$miUnmark.DropDownItems.Add($it)
+  Fill-List $miAdd $add '(no open apps to add)'
+  # Games > Ignore a game: running games + apps you added
+  $ign=@()
+  foreach ($path in (@($script:gs.paths) + @($c.gamesInclude) | ? { $_ } | Select -Unique)) {
+    $it=New-MenuItem "$(Get-Name $path)  ($(Split-Path $path -Leaf))" { param($s,$e) Add-Exclude ([string]$s.Tag) }; $it.Tag=$path; $ign += $it
   }
-  if (@($c.gamesExclude).Count -gt 0) {
-    [void]$miUnmark.DropDownItems.Add((New-Object Windows.Forms.ToolStripSeparator))
-    [void]$miUnmark.DropDownItems.Add((New-MenuItem "Reset exclusions ($(@($c.gamesExclude).Count))" { $cf=Get-Cfg; $cf.gamesExclude=@(); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }))
+  Fill-List $miIgnore $ign '(no game running or added)'
+  # Games > Ignored apps: click one to stop ignoring it
+  $igd=@()
+  foreach ($path in @($c.gamesExclude)) {
+    $it=New-MenuItem "$(Get-Name $path)  ($(Split-Path $path -Leaf))" { param($s,$e) Remove-Exclude ([string]$s.Tag) }; $it.Tag=$path; $it.ToolTipText='Click to stop ignoring'; $igd += $it
   }
-  if ($miUnmark.DropDownItems.Count -eq 0) { $x=New-MenuItem '(no games running or added)' $null; $x.Enabled=$false; [void]$miUnmark.DropDownItems.Add($x) }
+  Fill-List $miIgnored $igd '(none)'
 })
 Add-Type -Namespace CB -Name Win -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);'
 $ni.add_MouseUp({ param($s,$e)
@@ -281,6 +301,7 @@ $timer.add_Tick({
 })
 $timer.Start()
 Refresh
+Run-Auto
 [Windows.Forms.Application]::Run()
 $ni.Dispose(); $mtx.ReleaseMutex()
 
