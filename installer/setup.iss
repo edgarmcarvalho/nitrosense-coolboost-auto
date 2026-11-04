@@ -2,6 +2,8 @@
 ; Build:  ISCC.exe /DAppVersion=0.9.0 installer\setup.iss   ->  dist\CoolBoostAuto-Setup-0.9.0.exe
 ; The wizard copies the package to Program Files and runs install.ps1, which does the real work
 ; (compatibility check, scheduled tasks, permissions, shortcuts). Uninstall runs uninstall.ps1.
+; Testing switch: /SKIPCHECK skips the hardware check and installs with install.ps1 -Force
+; (used to test the wizard in Windows Sandbox, which has no Acer hardware).
 
 #ifndef AppVersion
   #define AppVersion "0.0.0-dev"
@@ -86,6 +88,14 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Fil
 Type: files; Name: "{app}\install.log"
 
 [Code]
+function SkipCheck(): Boolean;
+var i: Integer;
+begin
+  Result := False;
+  for i := 1 to ParamCount do
+    if CompareText(ParamStr(i), '/SKIPCHECK') = 0 then Result := True;
+end;
+
 function PowerShell(const Args: String; var Code: Integer): Boolean;
 begin
   Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
@@ -97,6 +107,7 @@ function InitializeSetup(): Boolean;
 var Code: Integer;
 begin
   Result := True;
+  if SkipCheck() then Exit;
   ExtractTemporaryFile('install.ps1');
   if not PowerShell('-File "' + ExpandConstant('{tmp}\install.ps1') + '" -CheckOnly -Quiet', Code) then Code := -1;
   case Code of
@@ -118,6 +129,7 @@ begin
     LogFile := ExpandConstant('{app}\install.log');
     Args := '-File "' + ExpandConstant('{app}\install.ps1') + '" -Quiet -NoStartTray -LogPath "' + LogFile + '"';
     if not WizardIsTaskSelected('autostart') then Args := Args + ' -NoAutostart';
+    if SkipCheck() then Args := Args + ' -Force';
     if (not PowerShell(Args, Code)) or (Code <> 0) then
       SuppressibleMsgBox(FmtMessage(CustomMessage('InstallFailed'), [IntToStr(Code), LogFile]), mbError, MB_OK, IDOK);
   end;
