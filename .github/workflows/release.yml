@@ -56,7 +56,7 @@ jobs:
         run: |
           $notes = "release-notes\$env:GITHUB_REF_NAME.md"
           $ghArgs = @('release', 'create', $env:GITHUB_REF_NAME) + (Get-ChildItem dist -File | ForEach-Object FullName) + @('--title', "CoolBoost Auto $env:GITHUB_REF_NAME", '--notes-file', $notes)
-          if ($env:VERSION -match '^0\.' -or $env:VERSION -match '-') { $ghArgs += '--prerelease' }   # 0.x = beta
+          if ($env:VERSION -match '-') { $ghArgs += '--prerelease' }   # only -rc/-beta tags; 0.x stays 'latest' so /releases/latest works
           gh @ghArgs
 
       - uses: actions/upload-artifact@v4
