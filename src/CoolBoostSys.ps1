@@ -33,9 +33,16 @@ try {
     'on'     { $ok=Set-CB 1; Log "Manual: ON (ok=$ok)"; return }
     'off'    { $ok=Set-CB 0; Log "Manual: OFF (ok=$ok)"; return }
   }
-  Start-Sleep 2
+  # AC/battery from Windows' own power status (same source as the tray icon). ACLineStatus 255 = unknown -> treat as AC.
+  if (-not ('CB.Pwr' -as [type])) {
+    Add-Type -Namespace CB -Name Pwr -MemberDefinition '[StructLayout(LayoutKind.Sequential)] public struct SPS { public byte AC; public byte Flag; public byte Pct; public byte Saver; public int Life; public int Full; } [DllImport("kernel32.dll")] public static extern bool GetSystemPowerStatus(out SPS s);'
+  }
+  function Get-OnAC { $s = New-Object 'CB.Pwr+SPS'; if ([CB.Pwr]::GetSystemPowerStatus([ref]$s)) { return ($s.AC -ne 0) }; return $true }
+  # confirm the state over a few seconds, so a brief glitch at plug/unplug can't switch CoolBoost
+  Start-Sleep 2; $onAC = Get-OnAC; Start-Sleep 3; $again = Get-OnAC
+  if ($again -ne $onAC) { Start-Sleep 3; $onAC = Get-OnAC; Log "Power state changed while checking; using: $(if($onAC){'AC'}else{'battery'})" }
+  try { $wmiAC = [bool](Get-CimInstance -Namespace root\WMI -ClassName BatteryStatus | Select -First 1).PowerOnline; if ($wmiAC -ne $onAC) { Log "Note: Windows says $(if($onAC){'AC'}else{'battery'}), battery driver says $(if($wmiAC){'AC'}else{'battery'}); using Windows" } } catch {}
   $cfg=Get-Cfg
-  $onAC=$true; try { $onAC=[bool](Get-CimInstance -Namespace root\WMI -ClassName BatteryStatus | Select -First 1).PowerOnline } catch {}
   $prevPwr = if (Test-Path $lastPwr) { (Get-Content $lastPwr -Raw).Trim() } else { '' }
   Set-Content $lastPwr ($(if($onAC){'ac'}else{'battery'}))
   if (-not $onAC) {

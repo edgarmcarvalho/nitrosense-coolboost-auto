@@ -215,7 +215,10 @@ function Open-NitroSense {
   Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!$appId"
 }
 [void]$menu.Items.Add((New-MenuItem 'Open NitroSense' { Open-NitroSense }))
-[void]$menu.Items.Add((New-MenuItem 'Open log' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
+$miLogs = New-MenuItem 'Open log' $null
+[void]$miLogs.DropDownItems.Add((New-MenuItem 'Power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
+[void]$miLogs.DropDownItems.Add((New-MenuItem 'Gaming automation' { $p = "$env:ProgramData\CoolBoostAuto\tray.log"; if (-not (Test-Path $p)) { New-Item $p -ItemType File -Force | Out-Null }; Start-Process notepad $p }))
+[void]$menu.Items.Add($miLogs)
 [void]$menu.Items.Add('-')
 [void]$menu.Items.Add((New-MenuItem 'Exit tray icon' { $ni.Visible=$false; [Windows.Forms.Application]::Exit() }))
 
