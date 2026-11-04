@@ -1,6 +1,6 @@
-# nitrosense-coolboost-auto
+# CoolBoost Auto
 
-**CoolBoost™ liga/desliga com um clique + automação para notebooks Acer Nitro.** Clique no ícone da bandeja para ligar ou desligar o CoolBoost na hora. Ele também desliga o CoolBoost na bateria, religa quando você conecta o carregador e liga enquanto você joga. Tudo isso sem precisar abrir o NitroSense.
+**CoolBoost™ automático para notebooks Acer Nitro.** O CoolBoost Auto liga e desliga o CoolBoost sozinho, de acordo com o que você está fazendo: desliga na bateria, religa quando você conecta o carregador e liga enquanto você joga. Quando quiser controlar manualmente, um clique no ícone da bandeja alterna. Tudo isso sem precisar abrir o NitroSense.
 
 🇺🇸 [Read in English](README.md)
 
@@ -10,22 +10,25 @@
 
 ## Recursos
 
-- **Liga/desliga com um clique:** clique com o botão esquerdo no ícone da bandeja para ligar ou desligar o CoolBoost na hora. Sem janela do NitroSense e sem pedido de administrador.
-- **Regra da bateria:** o CoolBoost **desliga** quando você tira o carregador, para as ventoinhas não gastarem bateria.
-- **Regra da tomada:** ao conectar de novo, você escolhe o que acontece:
+### Liga e desliga sozinho, conforme o contexto
+
+- **Na bateria:** o CoolBoost **desliga** quando você tira o carregador, para as ventoinhas não gastarem bateria.
+- **Ao conectar o carregador:** você escolhe o que acontece:
   - **Restaurar estado anterior** (padrão)
   - **Sempre LIGAR**
   - **Sempre DESLIGAR**
   - **Deixar como está**
-- **Modo jogo:** o CoolBoost **liga** enquanto um jogo está aberto e volta ao estado anterior quando o jogo fecha.
+- **Durante jogos:** o CoolBoost **liga** enquanto um jogo está aberto e volta ao estado anterior quando o jogo fecha.
   - Os jogos são detectados pela lista de jogos do próprio Windows, pelas bibliotecas da Steam e pelos jogos da Rockstar, além de qualquer app que você marcar. Jogos novos são reconhecidos automaticamente.
   - Desinstaladores, relatórios de erro e launchers são ignorados.
   - Se você mudar o CoolBoost manualmente no meio do jogo, a automação respeita a sua escolha até o jogo fechar.
   - Na bateria, a regra da bateria tem prioridade.
-- **Ícone na bandeja (estilo NitroSense):**
-  - Ventoinha vermelha = LIGADO, cinza = DESLIGADO, selo verde = jogo aberto.
-  - Clique esquerdo alterna. Clique direito mostra todas as opções.
-  - Sem pedidos de administrador (UAC).
+- Ele também confere de novo ao ligar o notebook e ao voltar da suspensão, caso você tenha conectado ou desconectado o carregador nesse meio-tempo.
+
+### Controle manual quando você quiser
+
+- **Liga/desliga com um clique:** clique com o botão esquerdo no ícone da bandeja para alternar o CoolBoost na hora. Sem pedido de administrador.
+- **Ícone na bandeja (estilo NitroSense):** ventoinha vermelha = LIGADO, cinza = DESLIGADO, selo verde = jogo aberto. Clique direito mostra todas as opções.
 - **Sem janela do NitroSense.** O CoolBoost é alternado pela mesma chamada de firmware que o NitroSense usa, e a configuração do próprio NitroSense é mantida em sincronia, então o app sempre mostra o estado certo.
 
 ## Compatibilidade
@@ -33,10 +36,11 @@
 | | |
 |---|---|
 | **Testado em** | Acer Nitro 5 **AN515-55**, Windows 11, NitroSense 3.01 |
-| **Provavelmente funciona em** | Outros Acer Nitro / Predator cujo firmware tenha a interface WMI `APGeAction` |
+| **Provavelmente funciona em** | Outros Acer Nitro com NitroSense cujo firmware tenha a interface WMI `APGeAction` |
+| **Ainda não suportado** | Notebooks Predator com PredatorSense (ajuda para testar é bem-vinda) |
 | **Requer** | NitroSense instalado, Windows PowerShell 5.1 (já incluso no Windows 10/11), conta de administrador para instalar |
 
-O instalador verifica o notebook antes de qualquer coisa. Se o modelo não suportar essa interface, ele para sem alterar nada. Se testar em outro modelo, abra uma issue contando se funcionou.
+O instalador verifica a compatibilidade antes de tudo, não o nome do modelo: se faltar a interface do CoolBoost ou o NitroSense, ele para sem alterar nada. Se testar em outro modelo, abra uma issue contando se funcionou.
 
 ## Instalação
 
@@ -70,7 +74,7 @@ Clique com o botão direito no ícone da bandeja:
   - **Stop treating as a game**: deixar de tratar como jogo, se algo disparar por engano (*Reset exclusions* desfaz)
 - **Open NitroSense** / **Open log**
 
-Também dá para reabrir o ícone pelo menu Iniciar: **CoolBoost Tray**.
+Também dá para reabrir pelo menu Iniciar: **CoolBoost Auto**.
 
 ## Como funciona
 

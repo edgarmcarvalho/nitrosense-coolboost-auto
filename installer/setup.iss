@@ -1,4 +1,4 @@
-﻿; nitrosense-coolboost-auto - setup wizard (Inno Setup 6.6+)
+﻿; CoolBoost Auto - setup wizard (Inno Setup 6.6+)
 ; Build:  ISCC.exe /DAppVersion=0.9.0 installer\setup.iss   ->  dist\CoolBoostAuto-Setup-0.9.0.exe
 ; The wizard copies the package to Program Files and runs install.ps1, which does the real work
 ; (compatibility check, scheduled tasks, permissions, shortcuts). Uninstall runs uninstall.ps1.
@@ -20,7 +20,7 @@ AppPublisher=edgarmcarvalho
 AppPublisherURL={#RepoUrl}
 AppSupportURL={#RepoUrl}/issues
 AppUpdatesURL={#RepoUrl}/releases
-DefaultDirName={autopf}\nitrosense-coolboost-auto
+DefaultDirName={autopf}\CoolBoost Auto
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 DisableReadyPage=no
@@ -51,10 +51,10 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ptbr"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [CustomMessages]
-en.AutoStart=Start the CoolBoost tray icon when I sign in to Windows
-ptbr.AutoStart=Iniciar o ícone do CoolBoost ao entrar no Windows
-en.LaunchTray=Start the CoolBoost tray icon now
-ptbr.LaunchTray=Iniciar o ícone do CoolBoost agora
+en.AutoStart=Start CoolBoost Auto when I sign in to Windows
+ptbr.AutoStart=Iniciar o CoolBoost Auto ao entrar no Windows
+en.LaunchTray=Start CoolBoost Auto now
+ptbr.LaunchTray=Iniciar o CoolBoost Auto agora
 en.Configuring=Setting up CoolBoost automation...
 ptbr.Configuring=Configurando a automação do CoolBoost...
 en.NotSupported=This laptop doesn't expose Acer's CoolBoost control (WMI class APGeAction), so CoolBoost Auto can't work here.%n%nIt is made for Acer Nitro / Predator laptops. Setup will now exit without changing anything.
@@ -79,7 +79,7 @@ Source: "..\README.pt-BR.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE";       DestDir: "{app}"; Flags: ignoreversion
 
 [Run]
-Filename: "{commonprograms}\CoolBoost Tray.lnk"; Description: "{cm:LaunchTray}"; Flags: postinstall nowait shellexec skipifsilent runasoriginaluser
+Filename: "{commonprograms}\CoolBoost Auto.lnk"; Description: "{cm:LaunchTray}"; Flags: postinstall nowait shellexec skipifsilent runasoriginaluser
 
 [UninstallRun]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\uninstall.ps1"" -Quiet"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveCoolBoostAuto"

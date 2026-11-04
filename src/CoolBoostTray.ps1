@@ -1,4 +1,4 @@
-﻿# nitrosense-coolboost-auto - tray icon (runs as the logged-in user)
+﻿# CoolBoost Auto - tray icon (runs as the logged-in user)
 # https://github.com/edgarmcarvalho/nitrosense-coolboost-auto  -  MIT License
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 Add-Type -Namespace CB -Name Dpi -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
@@ -99,7 +99,7 @@ function Get-RunningGames {
 $script:busy=$false; $script:proc=$null; $script:until=Get-Date; $script:startCB=-1
 $script:ourCmdUntil=[datetime]::MinValue
 function Run-Task($name){
-  $script:busy=$true; $ni.Text='CoolBoost: switching...'
+  $script:busy=$true; $ni.Text="CoolBoost Auto`nswitching..."
   $script:startCB=Get-CB
   $script:proc=Start-Process schtasks.exe -WindowStyle Hidden -PassThru -ArgumentList "/run /tn $name"
   $script:until=(Get-Date).AddSeconds(6); $script:ourCmdUntil=(Get-Date).AddSeconds(10)
@@ -168,12 +168,13 @@ function Refresh {
   if ($key -eq $script:last) { return }
   $script:last=$key
   $ni.Icon = $icons["$([int]($cb -eq 1))$([bool]$script:gs.active)"]
-  $t = switch ($cb) { 1 {'CoolBoost: ON'} 0 {'CoolBoost: OFF'} default {'CoolBoost: ?'} }
+  $t = switch ($cb) { 1 {'CoolBoost ON'} 0 {'CoolBoost OFF'} default {'CoolBoost ?'} }
   if ($script:gs.active) { $t += " | Gaming: $($script:gs.name)"; if ($script:gs.override) { $t += ' (manual)' } }
   else {
     $plug = switch ($c.onPlugIn) { 'on' {'ON'} 'off' {'OFF'} 'keep' {'unchanged'} default { if ($pend) {'ON (restore)'} else {'previous'} } }
     $t += " | plug-in: $plug"
   }
+  $t = "CoolBoost Auto`n$t"
   if ($t.Length -gt 63) { $t=$t.Substring(0,60)+'...' }
   $ni.Text=$t
 }

@@ -1,4 +1,4 @@
-﻿# nitrosense-coolboost-auto - background worker (runs as SYSTEM via scheduled tasks)
+﻿# CoolBoost Auto - background worker (runs as SYSTEM via scheduled tasks)
 # CoolBoost is read/set through Acer's ACPI WMI interface APGeAction (GetFunction 0x207 / SetFunction (state<<16)|7),
 # the same call NitroSense uses. Command found thanks to the OpenPredator project (MIT): https://github.com/KRWCLASSIC/OpenPredator
 # MIT License

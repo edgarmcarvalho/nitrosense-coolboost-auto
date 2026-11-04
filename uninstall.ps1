@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Removes nitrosense-coolboost-auto (scheduled tasks, files, shortcuts).
+  Removes CoolBoost Auto (scheduled tasks, files, shortcuts).
 .PARAMETER KeepSettings
   Keep your settings (settings.json) so a later reinstall picks them up.
 .PARAMETER Quiet
@@ -25,9 +25,9 @@ function Step($m) { Write-Host "==> $m" -ForegroundColor Cyan }
 $PF = Join-Path $env:ProgramFiles 'CoolBoostAuto'
 $PD = Join-Path $env:ProgramData  'CoolBoostAuto'
 
-Write-Host "`nnitrosense-coolboost-auto uninstaller`n" -ForegroundColor White
+Write-Host "`nCoolBoost Auto uninstaller`n" -ForegroundColor White
 
-Step 'Closing the tray icon'
+Step 'Closing CoolBoost Auto'
 Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -match 'CoolBoostTray\.ps1' } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
@@ -50,5 +50,5 @@ if (Test-Path $PD) {
   else { Remove-Item $PD -Recurse -Force }
 }
 
-Write-Host "`nUninstalled.$(if ($KeepSettings) { ' Your settings were kept.' })" -ForegroundColor Green
+Write-Host "`nCoolBoost Auto was uninstalled.$(if ($KeepSettings) { ' Your settings were kept.' })" -ForegroundColor Green
 if (-not $Quiet) { Read-Host "`nPress Enter to close" | Out-Null }

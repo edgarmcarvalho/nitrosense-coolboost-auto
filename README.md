@@ -1,6 +1,6 @@
-# nitrosense-coolboost-auto
+# CoolBoost Auto
 
-**One-click CoolBoost™ on/off + automation for Acer Nitro laptops.** Click the tray icon to switch CoolBoost on or off instantly. It also turns CoolBoost off on battery, brings it back when you plug in and switches it on while you're gaming. NitroSense itself never has to open.
+**Automatic CoolBoost™ for Acer Nitro laptops.** CoolBoost Auto switches CoolBoost on and off for you, based on what you're doing: off on battery, back on when you plug in, on while you're gaming. When you want manual control, one click on the tray icon toggles it. NitroSense itself never has to open.
 
 🇧🇷 [Leia em português](README.pt-BR.md)
 
@@ -10,22 +10,25 @@
 
 ## Features
 
-- **One-click on/off:** left-click the tray icon to switch CoolBoost on or off instantly. No NitroSense window and no admin prompt.
-- **Battery rule:** CoolBoost turns **off** when you unplug, so the fans don't drain the battery.
-- **Plug-in rule:** when you plug back in, choose what happens:
+### Automatic switching by context
+
+- **On battery:** CoolBoost turns **off** when you unplug, so the fans don't drain the battery.
+- **When you plug in:** you choose what happens:
   - **Restore previous state** (default)
   - **Always ON**
   - **Always OFF**
   - **Leave it as it is**
-- **Gaming mode:** CoolBoost turns **on** while a game is running and goes back to its previous state when the game closes.
+- **While gaming:** CoolBoost turns **on** while a game is running and goes back to its previous state when the game closes.
   - Games are detected from Windows' own game list, your Steam libraries and Rockstar games, plus any app you mark yourself. New installs are picked up automatically.
   - Uninstallers, crash reporters and launchers are ignored.
   - If you change CoolBoost yourself mid-game, the automation leaves it alone until the game closes.
   - On battery, the battery rule wins.
-- **Tray icon (NitroSense style):**
-  - Red fan = ON, grey fan = OFF, green badge = game running.
-  - Left-click to toggle. Right-click for all the options.
-  - No UAC prompts.
+- It also re-checks after boot and after waking from sleep, in case you plugged or unplugged in between.
+
+### Manual control when you want it
+
+- **One-click on/off:** left-click the tray icon to toggle CoolBoost instantly. No admin prompt.
+- **Tray icon (NitroSense style):** red fan = ON, grey fan = OFF, green badge = game running. Right-click for all the options.
 - **No NitroSense window.** CoolBoost is switched through the same firmware call NitroSense uses, and NitroSense's own setting is kept in sync, so the app always shows the right state.
 
 ## Compatibility
@@ -33,10 +36,11 @@
 | | |
 |---|---|
 | **Tested on** | Acer Nitro 5 **AN515-55**, Windows 11, NitroSense 3.01 |
-| **Likely works on** | Other Acer Nitro / Predator models whose firmware exposes the `APGeAction` WMI interface |
+| **Likely works on** | Other Acer Nitro models with NitroSense whose firmware exposes the `APGeAction` WMI interface |
+| **Not supported yet** | Predator laptops with PredatorSense (help testing is welcome) |
 | **Requires** | NitroSense installed, Windows PowerShell 5.1 (built into Windows 10/11), an admin account for installing |
 
-The installer checks your laptop first. If it doesn't support this CoolBoost interface, the installer stops without changing anything. If you try it on another model, please open an issue saying whether it worked.
+The installer checks compatibility first, not the model name: if the CoolBoost interface or NitroSense is missing, it stops without changing anything. If you try it on another model, please open an issue saying whether it worked.
 
 ## Install
 
@@ -70,7 +74,7 @@ Right-click the tray icon:
   - **Stop treating as a game**: if something triggers by mistake (*Reset exclusions* undoes it)
 - **Open NitroSense** / **Open log**
 
-You can also reopen the icon from the Start menu: **CoolBoost Tray**.
+You can also reopen it from the Start menu: **CoolBoost Auto**.
 
 ## How it works
 

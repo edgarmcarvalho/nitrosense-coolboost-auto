@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Installs nitrosense-coolboost-auto: automatic NitroSense CoolBoost switching + tray icon.
+  Installs CoolBoost Auto: automatic, context-based NitroSense CoolBoost switching + tray icon.
 .DESCRIPTION
   - Checks that this laptop exposes Acer's CoolBoost control (ACPI WMI class APGeAction).
   - Installs the background worker to "Program Files\CoolBoostAuto" (admin-only) and the
@@ -11,7 +11,7 @@
       CoolBoostToggle - toggle  (runnable by normal users, used by the tray icon)
       CoolBoostOn     - set ON  (idem)
       CoolBoostOff    - set OFF (idem)
-  - Adds "CoolBoost Tray" to the Start menu and (unless -NoAutostart) to Startup.
+  - Adds "CoolBoost Auto" to the Start menu and (unless -NoAutostart) to Startup.
   Re-running it upgrades an existing install and keeps your settings.
 .PARAMETER NoAutostart
   Don't start the tray icon automatically at login.
@@ -52,7 +52,7 @@ $PD  = Join-Path $env:ProgramData  'CoolBoostAuto'
 $assets = Join-Path $PSScriptRoot 'assets'
 $icons = 'app.ico', 'tray_on.ico', 'tray_off.ico', 'tray_on_game.ico', 'tray_off_game.ico'
 
-Write-Host "`nnitrosense-coolboost-auto installer`n" -ForegroundColor White
+Write-Host "`nCoolBoost Auto installer`n" -ForegroundColor White
 
 # ---------- compatibility ----------
 Step 'Checking that this laptop supports CoolBoost control'
@@ -76,7 +76,7 @@ elseif ($Force) { Write-Warning "NitroSense settings not found - the tray icon w
 else { Fail "NitroSense doesn't seem to be installed (its settings key is missing). Install NitroSense from the Microsoft Store / Acer support first." 3 }
 if ($CheckOnly) { Done 0 }
 
-$files = @(Join-Path $src 'CoolBoostSys.ps1'; Join-Path $src 'CoolBoostTray.ps1'; Join-Path $src 'Start CoolBoost Tray.vbs') + ($icons | ForEach-Object { Join-Path $assets $_ })
+$files = @(Join-Path $src 'CoolBoostSys.ps1'; Join-Path $src 'CoolBoostTray.ps1'; Join-Path $src 'Start CoolBoost Auto.vbs') + ($icons | ForEach-Object { Join-Path $assets $_ })
 foreach ($f in $files) { if (-not (Test-Path $f)) { Fail "Missing file $f - extract the whole download before running install.ps1." } }
 
 # ---------- stop a running tray icon (upgrade) ----------
@@ -87,10 +87,10 @@ Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $
 Step 'Installing files'
 New-Item -ItemType Directory -Force -Path $PF, $PD | Out-Null
 Copy-Item (Join-Path $src 'CoolBoostSys.ps1') $PF -Force
-foreach ($f in 'CoolBoostTray.ps1', 'Start CoolBoost Tray.vbs') { Copy-Item (Join-Path $src $f) $PD -Force }
+foreach ($f in 'CoolBoostTray.ps1', 'Start CoolBoost Auto.vbs') { Copy-Item (Join-Path $src $f) $PD -Force }
 foreach ($f in $icons) { Copy-Item (Join-Path $assets $f) $PD -Force }
 # files from older versions
-Remove-Item (Join-Path $PD 'CoolBoostIcon.ps1'), (Join-Path $PD 'CoolBoostApp.ico') -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $PD 'CoolBoostIcon.ps1'), (Join-Path $PD 'CoolBoostApp.ico'), (Join-Path $PD 'Start CoolBoost Tray.vbs') -Force -ErrorAction SilentlyContinue
 Get-ChildItem $PF, $PD -File | Unblock-File
 
 $sidAdmins = New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544'
@@ -144,12 +144,12 @@ $powerChange = EventTrigger 'Microsoft-Windows-Kernel-Power' 105          # powe
 $wake        = EventTrigger 'Microsoft-Windows-Power-Troubleshooter' 1    # resumed from sleep
 $boot        = New-ScheduledTaskTrigger -AtStartup; $boot.Delay = 'PT45S'
 Register-ScheduledTask -TaskName 'CoolBoostAuto' -Action (Act 'auto') -Trigger @($powerChange, $boot, $wake) -Settings $settingsSet -Principal $system `
-  -Description 'nitrosense-coolboost-auto: CoolBoost rules on plug/unplug, startup and wake' -Force | Out-Null
+  -Description 'CoolBoost Auto: CoolBoost rules on plug/unplug, startup and wake' -Force | Out-Null
 $svc = New-Object -ComObject Schedule.Service; $svc.Connect()
 foreach ($m in 'Toggle', 'On', 'Off') {
   $name = "CoolBoost$m"
   Register-ScheduledTask -TaskName $name -Action (Act $m.ToLower()) -Settings $settingsSet -Principal $system `
-    -Description "nitrosense-coolboost-auto: CoolBoost $($m.ToLower()) (used by the tray icon)" -Force | Out-Null
+    -Description "CoolBoost Auto: CoolBoost $($m.ToLower()) (used by the tray icon)" -Force | Out-Null
   # let normal (non-admin) users run this one task, so the tray icon needs no UAC prompt
   $t = $svc.GetFolder('\').GetTask($name); $sd = $t.GetSecurityDescriptor(4)
   if ($sd -notmatch ';;;AU\)') { $t.SetSecurityDescriptor(($sd -replace '(D:[A-Z]*)', '$1(A;;GRGX;;;AU)'), 0) }
@@ -162,27 +162,28 @@ $sh = New-Object -ComObject WScript.Shell
 function Lnk($path) {
   $l = $sh.CreateShortcut($path)
   $l.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
-  $l.Arguments = "`"$(Join-Path $PD 'Start CoolBoost Tray.vbs')`""
-  $l.WorkingDirectory = $PD; $l.IconLocation = "$(Join-Path $PD 'app.ico'),0"; $l.Description = 'CoolBoost tray icon'
+  $l.Arguments = "`"$(Join-Path $PD 'Start CoolBoost Auto.vbs')`""
+  $l.WorkingDirectory = $PD; $l.IconLocation = "$(Join-Path $PD 'app.ico'),0"; $l.Description = 'CoolBoost Auto - automatic CoolBoost control'
   $l.Save()
 }
 $commonPrograms = [Environment]::GetFolderPath('CommonPrograms')
 $commonStartup  = [Environment]::GetFolderPath('CommonStartup')
-# remove per-user shortcuts left by older/manual installs, to avoid duplicates
+# remove shortcuts left by older versions ("CoolBoost Tray") and per-user/manual installs, to avoid duplicates
 foreach ($d in [Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Startup')) {
   Get-ChildItem $d -Filter '*CoolBoost*.lnk' -ErrorAction SilentlyContinue | Remove-Item -Force
 }
-$startLnk = Join-Path $commonPrograms 'CoolBoost Tray.lnk'
-Lnk $startLnk; Ok 'Start menu: CoolBoost Tray'
-$autoLnk = Join-Path $commonStartup 'CoolBoost Tray.lnk'
+foreach ($d in $commonPrograms, $commonStartup) { Remove-Item (Join-Path $d 'CoolBoost Tray.lnk') -Force -ErrorAction SilentlyContinue }
+$startLnk = Join-Path $commonPrograms 'CoolBoost Auto.lnk'
+Lnk $startLnk; Ok 'Start menu: CoolBoost Auto'
+$autoLnk = Join-Path $commonStartup 'CoolBoost Auto.lnk'
 if ($NoAutostart) { Remove-Item $autoLnk -Force -ErrorAction SilentlyContinue; Ok 'Autostart: off' } else { Lnk $autoLnk; Ok 'Autostart at login: on' }
 
 # ---------- start the tray icon as the normal (non-admin) user ----------
 if (-not $NoStartTray) {
-  Step 'Starting the tray icon'
+  Step 'Starting CoolBoost Auto'
   Start-Process explorer.exe -ArgumentList "`"$startLnk`""
   Ok 'Look for the red fan icon next to the clock (it may be under the ^ arrow).'
 }
 
-Write-Host "`nInstalled. Right-click the tray icon for options. To remove: run uninstall.ps1." -ForegroundColor Green
+Write-Host "`nCoolBoost Auto is installed. Right-click its tray icon for options. To remove: run uninstall.ps1." -ForegroundColor Green
 Done 0

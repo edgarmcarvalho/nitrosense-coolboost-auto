@@ -14,6 +14,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check PowerShell syntax
+        shell: powershell
+        run: |
+          $bad = 0
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $err = $null; [void][Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$err)
+            foreach ($e in $err) { Write-Host "::error file=$($_.Name),line=$($e.Extent.StartLineNumber)::$($e.Message)"; $bad++ }
+          }
+          if ($bad) { throw "$bad syntax error(s)" } else { 'All scripts parse OK' }
+
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
@@ -30,7 +40,7 @@ jobs:
       - name: Package scripts zip
         shell: pwsh
         run: |
-          $stage = "stage\nitrosense-coolboost-auto-$env:VERSION"
+          $stage = "stage\CoolBoostAuto-$env:VERSION"
           New-Item -ItemType Directory -Force $stage | Out-Null
           Copy-Item install.ps1, uninstall.ps1, README.md, README.pt-BR.md, LICENSE $stage
           Copy-Item src, assets $stage -Recurse
