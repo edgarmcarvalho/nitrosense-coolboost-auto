@@ -101,6 +101,15 @@ Releases are built by GitHub Actions ([`.github/workflows/release.yml`](.github/
 - If you exit the tray icon while a game is running, CoolBoost stays in its current state.
 - A game is identified by its executable. Games that run through a launcher stub get detected once the real game process starts.
 
+## Code signing policy
+
+The setup is currently **unsigned**: Windows SmartScreen may warn about it, and **Smart App Control blocks it**. If you have Smart App Control on, use the scripts zip instead. Signing through the [SignPath Foundation](https://signpath.org) open-source program has been requested. Once it is approved, every release built by the [release workflow](.github/workflows/release.yml) will be signed, and this section will say so.
+
+- Committers and reviewers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
+- Approvers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
+
+**Privacy:** this program does not transfer any information to other networked systems. It works entirely offline.
+
 ## Credits
 
 - The CoolBoost firmware command was identified thanks to **[OpenPredator](https://github.com/KRWCLASSIC/OpenPredator)** by KRWCLASSIC (MIT), an open-source reimplementation of the NitroSense/PredatorSense stack. No code was copied; the call was verified independently on an AN515-55.

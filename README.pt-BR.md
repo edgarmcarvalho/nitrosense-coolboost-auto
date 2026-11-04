@@ -101,6 +101,15 @@ As versões são geradas pelo GitHub Actions ([`.github/workflows/release.yml`](
 - Se você fechar o ícone da bandeja com um jogo aberto, o CoolBoost fica no estado atual.
 - O jogo é identificado pelo executável. Jogos que abrem por um launcher são detectados quando o processo real do jogo inicia.
 
+## Política de assinatura de código
+
+O instalador ainda **não é assinado**: o SmartScreen do Windows pode avisar e o **Controle Inteligente de Aplicativos (Smart App Control) o bloqueia**. Se você usa o Smart App Control, use o zip com os scripts. A assinatura pelo programa open source da [SignPath Foundation](https://signpath.org) foi solicitada. Quando for aprovada, todas as versões geradas pelo [workflow de release](.github/workflows/release.yml) serão assinadas, e esta seção será atualizada.
+
+- Commits e revisão: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
+- Aprovação: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
+
+**Privacidade:** este programa não envia nenhuma informação para outros sistemas em rede. Ele funciona totalmente offline.
+
 ## Créditos
 
 - O comando de firmware do CoolBoost foi identificado graças ao **[OpenPredator](https://github.com/KRWCLASSIC/OpenPredator)**, de KRWCLASSIC (MIT), uma reimplementação open source do NitroSense/PredatorSense. Nenhum código foi copiado; a chamada foi verificada de forma independente num AN515-55.
