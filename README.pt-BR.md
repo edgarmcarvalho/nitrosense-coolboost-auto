@@ -28,6 +28,7 @@
 ### Controle manual quando você quiser
 
 - **Liga/desliga com um clique:** clique com o botão esquerdo no ícone da bandeja para alternar o CoolBoost na hora. Sem pedido de administrador.
+- **Pausa quando quiser:** *Pause automation* no menu pausa toda a troca automática até você retomar.
 - **Ícone na bandeja (estilo NitroSense):** ventoinha vermelha = LIGADO, cinza = DESLIGADO, selo verde = jogo aberto. Clique direito mostra todas as opções.
 - **Sem janela do NitroSense.** O CoolBoost é alternado pela mesma chamada de firmware que o NitroSense usa, e a configuração do próprio NitroSense é mantida em sincronia, então o app sempre mostra o estado certo.
 
@@ -54,7 +55,7 @@ Rodar uma versão mais nova do instalador atualiza a instalação e mantém suas
 
 <details><summary>Prefere scripts? Instalação sem o assistente</summary>
 
-Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da versão (ou **Code → Download ZIP**), extraia e clique com o botão direito em **`install.ps1`** → **Executar com o PowerShell**. Opções: `-NoAutostart` (não iniciar o ícone ao fazer login). Para remover: **`uninstall.ps1`**, com `-KeepSettings` para guardar suas configurações.
+Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da versão (ou **Code → Download ZIP**), extraia e clique com o botão direito em **`install.ps1`** → **Executar com o PowerShell**. Opções: `-NoAutostart` (desmarca **Start with Windows**; dá para religar pelo menu). Para remover: **`uninstall.ps1`**, com `-KeepSettings` para guardar suas configurações.
 </details>
 
 ## Desinstalação
@@ -63,18 +64,25 @@ Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da versão (ou **Code → Download ZIP
 
 ## Como usar
 
-Clique com o botão direito no ícone da bandeja:
+**Clique com o botão esquerdo** no ícone da bandeja para ligar ou desligar o CoolBoost. O ícone muda assim que o notebook confirma a troca.
 
-- **Turn CoolBoost ON / OFF** (ligar / desligar)
-- **Automation**
-  - **Turn off on battery**: desligar na bateria
-  - **When plugged in**: ao conectar o carregador; restaurar / sempre ligar / sempre desligar / deixar como está
-  - **Turn ON while gaming**: ligar durante jogos
-  - **Mark a running app as a game**: marcar um app aberto como jogo, para o que não for detectado sozinho
-  - **Stop treating as a game**: deixar de tratar como jogo, se algo disparar por engano (*Reset exclusions* desfaz)
+**Clique com o botão direito** para abrir o menu (em inglês):
+
+- **CoolBoost Auto x.y.z** e uma linha de status mostrando o que o CoolBoost está fazendo e por quê (na tomada, na bateria, jogando, pausado)
+- **Turn CoolBoost ON / OFF**: ligar / desligar
+- **On battery: turn CoolBoost off**: desligar na bateria
+- **When plugged in** ▸ ao conectar o carregador: restaurar o estado de antes de desconectar / sempre ligar / sempre desligar / manter o estado da bateria
+- **While gaming: turn CoolBoost on (when plugged in)**: ligar durante jogos (na tomada)
+- **Games** ▸ os jogos detectados agora, mais:
+  - **Add a running app**: marcar um app aberto como jogo, para o que não for detectado sozinho
+  - **Ignore a game**: ignorar um jogo, se algo disparar por engano
+  - **Ignored apps**: apps ignorados; clique em um para voltar a considerá-lo
+- **Pause automation**: pausa toda a troca automática até você desmarcar. O clique para ligar/desligar continua funcionando.
+- **Start with Windows**: iniciar com o Windows
 - **Open NitroSense** / **Open log**
+- **Exit (stops all automation)**: fecha o ícone e para todas as regras automáticas até você abrir o CoolBoost Auto de novo. O CoolBoost fica no estado em que estiver.
 
-Também dá para reabrir pelo menu Iniciar: **CoolBoost Auto**.
+Para abrir de novo, use o menu Iniciar: **CoolBoost Auto**.
 
 ## Como funciona
 
@@ -103,7 +111,6 @@ As versões são geradas pelo GitHub Actions ([`.github/workflows/release.yml`](
 ## Limitações conhecidas
 
 - Testado apenas no AN515-55. Outros modelos podem usar chamadas de firmware diferentes.
-- Se você fechar o ícone da bandeja com um jogo aberto, o CoolBoost fica no estado atual.
 - O jogo é identificado pelo executável. Jogos que abrem por um launcher são detectados quando o processo real do jogo inicia.
 
 ## Política de assinatura de código

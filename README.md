@@ -28,6 +28,7 @@
 ### Manual control when you want it
 
 - **One-click on/off:** left-click the tray icon to toggle CoolBoost instantly. No admin prompt.
+- **Pause anytime:** *Pause automation* in the menu stops all automatic switching until you resume it.
 - **Tray icon (NitroSense style):** red fan = ON, grey fan = OFF, green badge = game running. Right-click for all the options.
 - **No NitroSense window.** CoolBoost is switched through the same firmware call NitroSense uses, and NitroSense's own setting is kept in sync, so the app always shows the right state.
 
@@ -54,7 +55,7 @@ Running a newer setup upgrades an existing install and keeps your settings.
 
 <details><summary>Prefer scripts? Install without the wizard</summary>
 
-Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release (or **Code → Download ZIP**), extract it, then right-click **`install.ps1`** → **Run with PowerShell**. Options: `-NoAutostart` (don't start the icon at login). To remove: **`uninstall.ps1`**, with `-KeepSettings` to keep your settings.
+Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release (or **Code → Download ZIP**), extract it, then right-click **`install.ps1`** → **Run with PowerShell**. Options: `-NoAutostart` (turns **Start with Windows** off; you can turn it back on from the menu). To remove: **`uninstall.ps1`**, with `-KeepSettings` to keep your settings.
 </details>
 
 ## Uninstall
@@ -63,18 +64,25 @@ Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release (or **Code → Downl
 
 ## Using it
 
-Right-click the tray icon:
+**Left-click** the tray icon to switch CoolBoost on or off. The icon changes as soon as the laptop confirms the switch.
 
+**Right-click** for the menu:
+
+- **CoolBoost Auto x.y.z** and a status line showing what CoolBoost is doing and why (plugged in, on battery, gaming, paused)
 - **Turn CoolBoost ON / OFF**
-- **Automation**
-  - **Turn off on battery**
-  - **When plugged in:** Restore previous state / Always turn ON / Always turn OFF / Leave it as it is
-  - **Turn ON while gaming**
-  - **Mark a running app as a game**: for anything that isn't detected automatically
-  - **Stop treating as a game**: if something triggers by mistake (*Reset exclusions* undoes it)
+- **On battery: turn CoolBoost off**
+- **When plugged in** ▸ Restore state from before unplugging / Always turn CoolBoost ON / Always turn CoolBoost OFF / Keep the battery state
+- **While gaming: turn CoolBoost on (when plugged in)**
+- **Games** ▸ the games detected right now, plus:
+  - **Add a running app**: for anything that isn't detected automatically
+  - **Ignore a game**: if something triggers by mistake
+  - **Ignored apps**: click one to stop ignoring it
+- **Pause automation**: stops all automatic switching until you untick it. One-click switching still works.
+- **Start with Windows**
 - **Open NitroSense** / **Open log**
+- **Exit (stops all automation)**: closes the icon and stops every automatic rule until you start CoolBoost Auto again. CoolBoost stays in its current state.
 
-You can also reopen it from the Start menu: **CoolBoost Auto**.
+You can start it again from the Start menu: **CoolBoost Auto**.
 
 ## How it works
 
@@ -103,7 +111,6 @@ Releases are built by GitHub Actions ([`.github/workflows/release.yml`](.github/
 ## Known limitations
 
 - Tested only on the AN515-55. Other models may use different firmware calls.
-- If you exit the tray icon while a game is running, CoolBoost stays in its current state.
 - A game is identified by its executable. Games that run through a launcher stub get detected once the real game process starts.
 
 ## Code signing policy
