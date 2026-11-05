@@ -36,7 +36,7 @@
 
 | | |
 |---|---|
-| **Tested on** | Acer Nitro 5 **AN515-55**, Windows 11, NitroSense 3.01 |
+| **Tested on** | Acer Nitro 5 **AN515-55** (Windows 11, NitroSense 3.01) and **AN515-57** (reported working by a user) |
 | **Likely works on** | Other Acer Nitro models with NitroSense whose firmware exposes the `APGeAction` WMI interface |
 | **Not supported yet** | Predator laptops with PredatorSense (help testing is welcome) |
 | **Requires** | NitroSense installed, Windows PowerShell 5.1 (built into Windows 10/11), an admin account for installing |
@@ -110,7 +110,7 @@ Releases are built by GitHub Actions ([`.github/workflows/release.yml`](.github/
 
 ## Known limitations
 
-- Tested only on the AN515-55. Other models may use different firmware calls.
+- Tested on the AN515-55 and AN515-57. Other models may use different firmware calls.
 - A game is identified by its executable. Games that run through a launcher stub get detected once the real game process starts.
 
 ## Code signing policy
