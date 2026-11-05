@@ -10,8 +10,8 @@ function Log($m){ "$(Get-Date -f 'yyyy-MM-dd HH:mm:ss') $m" | Out-File $log -App
 if ((Test-Path $log) -and (Get-Item $log).Length -gt 200KB) { Get-Content $log -Tail 300 | Set-Content $log }
 function Get-Cfg {
   $c=@{offOnBattery=$true; onPlugIn='restore'; paused=$false}
+  $j=$null; foreach ($try in 1..3) { try { $j=Get-Content $cfgPath -Raw | ConvertFrom-Json; break } catch { Start-Sleep -Milliseconds 150 } }
   try {
-    $j=Get-Content $cfgPath -Raw | ConvertFrom-Json
     if ($j.offOnBattery -is [bool]) { $c.offOnBattery=$j.offOnBattery }
     if ($j.paused -is [bool]) { $c.paused=$j.paused }
     if ($j.onPlugIn -is [string] -and $j.onPlugIn -in 'restore','on','off','keep') { $c.onPlugIn=$j.onPlugIn }
@@ -50,7 +50,7 @@ try {
   Set-Content $lastPwr ($(if($onAC){'ac'}else{'battery'}))
   if (-not $onAC) {
     if (-not $cfg.offOnBattery) { return }
-    if ($cur -eq 1) { Set-Content $saved '1'; $ok=Set-CB 0; Log "Battery: CoolBoost was ON -> OFF (ok=$ok)" }
+    if ($cur -eq 1) { if (-not (Test-Path $saved)) { Set-Content $saved '1' }; $ok=Set-CB 0; Log "Battery: CoolBoost was ON -> OFF (ok=$ok)" }
     elseif (-not (Test-Path $saved)) { Set-Content $saved '0'; Log 'Battery: CoolBoost already OFF (remembered OFF)' }
   } else {
     $pluggedIn = ($prevPwr -eq 'battery') -or (Test-Path $saved)

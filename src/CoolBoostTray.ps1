@@ -127,11 +127,12 @@ function Game-Tick {
   $now=Get-Date; $ac=On-AC
   if ($ac -ne $script:lastAC) { $script:lastAC=$ac; $script:powerAt=$now }
   $cb=Get-CB
+  if ($script:cfg.paused) { $script:prevCB=$cb; return }   # paused: watch nothing, change nothing
   $quiet = ($now -gt $script:ourCmdUntil) -and (($now-$script:powerAt).TotalSeconds -gt 10)
 
   if (($now-$script:scanAt).TotalSeconds -ge 4) {
     $script:scanAt=$now
-    $games = if ($script:cfg.gameMode -and -not $script:cfg.paused) { @(Get-RunningGames) } else { @() }
+    $games = @(if ($script:cfg.gameMode -and -not $script:cfg.paused) { Get-RunningGames })   # @() outside: one game must stay a list, not a string
     if ($games.Count -gt 0 -and -not $script:gs.active) {
       $script:pendingOff=$false
       $script:gs=@{active=$true; preGame=$cb; weTurnedOn=$false; override=$false; name=(Get-Name $games[0]); paths=$games}
@@ -153,7 +154,7 @@ function Game-Tick {
 
   if ($script:gs.active -and -not $script:busy) {
     # user (not us, not a power change) turned it off mid-game -> respect until the game closes
-    if ($script:gs.weTurnedOn -and $script:prevCB -eq 1 -and $cb -eq 0 -and $ac -and $quiet -and -not $script:gs.override) { $script:gs.override=$true; $script:last=''; TLog 'Manual change during game - automation paused until it closes' }
+    if ($script:prevCB -eq 1 -and $cb -eq 0 -and $ac -and $quiet -and -not $script:gs.override) { $script:gs.override=$true; $script:last=''; TLog 'Manual change during game - automation paused until it closes' }
     elseif (-not $script:gs.override -and $ac -and $cb -eq 0 -and $quiet) { $script:gs.weTurnedOn=$true; TLog "Turning CoolBoost ON for $($script:gs.name)"; Run-Task 'CoolBoostOn' 1 }
   }
   $script:prevCB=$cb
@@ -200,7 +201,7 @@ function Add-Include($path){ $cf=Get-Cfg; $cf.gamesInclude=@(@($cf.gamesInclude)
 function Add-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@(@($cf.gamesExclude) + $path | Select -Unique); $cf.gamesInclude=@($cf.gamesInclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 function Remove-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 # re-apply the plug/unplug rules now (used at startup and when automation resumes)
-function Run-Auto { Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto' }
+function Run-Auto { $script:ourCmdUntil=(Get-Date).AddSeconds(10); Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto' }
 function Open-NitroSense {
   # NitroSense / PredatorSense package names differ between models and versions, so look it up
   $pkg = Get-AppxPackage -Name 'AcerIncorporated.*' -EA SilentlyContinue | ? { $_.Name -match 'NitroSense|PredatorSense' } | Select -First 1
