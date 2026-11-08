@@ -355,6 +355,7 @@ $script:osdFontT = New-Object Drawing.Font 'Segoe UI Variable Text', 10.5, ([Dra
 if ($script:osdFontT.Name -ne 'Segoe UI Variable Text') { $script:osdFontT = New-Object Drawing.Font 'Segoe UI', 10.5, ([Drawing.FontStyle]::Bold) }
 $script:osdFontR = New-Object Drawing.Font $script:osdFontT.FontFamily, 8.5
 $script:osdGrey = New-Object Drawing.SolidBrush ([Drawing.Color]::FromArgb(190, 190, 190))
+$script:osdTrim = New-Object Drawing.StringFormat; $script:osdTrim.Trimming = 'EllipsisCharacter'; $script:osdTrim.FormatFlags = 'NoWrap'
 $script:osdForm = $null; $script:osdCB = Get-CB; $script:osdReason = ''; $script:cmdAt = [datetime]::MinValue
 $osdSw = New-Object Diagnostics.Stopwatch
 $osdTimer = New-Object Windows.Forms.Timer; $osdTimer.Interval = 8
@@ -393,15 +394,21 @@ function Show-Osd([int]$state, [string]$reason) {
   $f = New-Object CoolBoostOsdForm
   $f.FormBorderStyle = 'None'; $f.ShowInTaskbar = $false; $f.TopMost = $true; $f.StartPosition = 'Manual'
   $f.BackColor = [Drawing.Color]::FromArgb(44, 44, 44)
-  $f.Size = New-Object Drawing.Size (Px 210), (Px 46)
-  $f.Tag = @{ title = "CoolBoost $(if ($state) { 'ON' } else { 'OFF' })"; reason = $reason; img = $script:osdImg[$(if ($state) { 'on' } else { 'off' })] }
+  $title = "CoolBoost $(if ($state) { 'ON' } else { 'OFF' })"
+  # wide enough for the text (a long game name), between 210 and 400 px at 100%; past that the name ends in "..."
+  $gm = [Drawing.Graphics]::FromHwnd([IntPtr]::Zero)
+  $textW = [Math]::Max($gm.MeasureString($title, $script:osdFontT).Width, $(if ($reason) { $gm.MeasureString($reason, $script:osdFontR).Width } else { 0 }))
+  $gm.Dispose()
+  $w = [Math]::Min((Px 400), [Math]::Max((Px 210), [int][Math]::Ceiling((Px 48) + $textW + (Px 16))))
+  $f.Size = New-Object Drawing.Size $w, (Px 46)
+  $f.Tag = @{ title = $title; reason = $reason; img = $script:osdImg[$(if ($state) { 'on' } else { 'off' })] }
   $f.add_Paint({ param($snd, $ev)
     $d = $snd.Tag; $g = $ev.Graphics
     $g.SmoothingMode = 'AntiAlias'; $g.TextRenderingHint = 'ClearTypeGridFit'; $g.InterpolationMode = 'HighQualityBicubic'
     if ($d.img) { $g.DrawImage($d.img, [Drawing.Rectangle]::new((Px 14), [int](($snd.Height - (Px 24)) / 2), (Px 24), (Px 24))) }
     if ($d.reason) {
       $g.DrawString($d.title, $script:osdFontT, [Drawing.Brushes]::White, (Px 48), (Px 5))
-      $g.DrawString($d.reason, $script:osdFontR, $script:osdGrey, (Px 48), (Px 24))
+      $g.DrawString($d.reason, $script:osdFontR, $script:osdGrey, [Drawing.RectangleF]::new((Px 48), (Px 24), ($snd.Width - (Px 48) - (Px 12)), (Px 20)), $script:osdTrim)
     } else { $g.DrawString($d.title, $script:osdFontT, [Drawing.Brushes]::White, (Px 48), [int](($snd.Height - $g.MeasureString($d.title, $script:osdFontT).Height) / 2)) }
   })
   # bottom centre of the main screen; the taskbar's top edge is the bottom of the working area
