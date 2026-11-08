@@ -74,6 +74,7 @@ Jogos novos são reconhecidos sozinhos, sem lista para manter. Launchers, desins
 | **Testado em** | Acer Nitro 5 **AN515-55** (Windows 11, NitroSense 3.01) · Acer Nitro 5 **AN515-57** (funcionando segundo um usuário) |
 | **Provavelmente funciona em** | Outros Acer Nitro com NitroSense cujo firmware tenha a interface WMI `APGeAction` |
 | **Ainda não suportado** | Notebooks Predator com PredatorSense (ajuda para testar é bem-vinda) |
+| **Não suportado** | Acer Predator Triton 300 **PT315-53**: a Acer não oferece CoolBoost neste modelo (verificado por um usuário) |
 | **Requer** | NitroSense instalado (não precisa estar aberto), Windows 10 ou 11 (64 bits), conta de administrador para instalar |
 
 O instalador verifica a interface do CoolBoost e o NitroSense, não o nome do modelo. Se faltar algum dos dois, ele para sem alterar nada. Testou em outro modelo? [Abra uma issue](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues) contando se funcionou, para ele entrar nesta lista.
