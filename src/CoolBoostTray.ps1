@@ -6,12 +6,12 @@ Add-Type -Namespace CB -Name Dpi -MemberDefinition '[DllImport("user32.dll")] pu
 [void][CB.Dpi]::SetProcessDPIAware()
 $mtx = New-Object Threading.Mutex($false,'Local\CoolBoostTray')
 if (-not $mtx.WaitOne(0)) { exit }
-$regPath   = 'HKLM:\SOFTWARE\OEM\NitroSense\FanControl'
 $cfgPath   = "$env:ProgramData\CoolBoostAuto\settings.json"
 $savedPath = "$env:ProgramFiles\CoolBoostAuto\saved_state.txt"
 
 # ---------- settings ----------
-function Get-CB { try { [int](Get-ItemProperty $regPath).CoolBoostMode } catch { -1 } }
+# read straight through .NET: ~35x faster than Get-ItemProperty, and this runs several times a second
+function Get-CB { try { $v=[Microsoft.Win32.Registry]::GetValue('HKEY_LOCAL_MACHINE\SOFTWARE\OEM\NitroSense\FanControl','CoolBoostMode',$null); if ($null -eq $v) { -1 } else { [int]$v } } catch { -1 } }
 function Get-Cfg {
   $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; paused=$false; startWithWindows=$true; osd=$true; gamesInclude=@(); gamesExclude=@()}
   $script:cfgReadOk=$false
@@ -103,9 +103,23 @@ public static string GetPath(int pid) {
   try { var sb = new StringBuilder(1024); int n = sb.Capacity; return QueryFullProcessImageNameW(h, 0, sb, ref n) ? sb.ToString() : null; }
   finally { CloseHandle(h); }
 }
+// paths already looked up, by process id (with the process name, because Windows reuses ids)
+static Dictionary<int, KeyValuePair<string, string>> cache = new Dictionary<int, KeyValuePair<string, string>>();
 public static string[] GetAll() {
   var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-  foreach (var p in System.Diagnostics.Process.GetProcesses()) { try { var s = GetPath(p.Id); if (s != null) set.Add(s); } catch {} finally { p.Dispose(); } }
+  var seen = new HashSet<int>();
+  foreach (var p in System.Diagnostics.Process.GetProcesses()) {
+    try {
+      int id = p.Id; string name = p.ProcessName; seen.Add(id);
+      KeyValuePair<string, string> e; string s;
+      if (cache.TryGetValue(id, out e) && e.Key == name) { s = e.Value; }
+      else { s = GetPath(id); if (s != null) cache[id] = new KeyValuePair<string, string>(name, s); }   // failures are retried next time
+      if (s != null) set.Add(s);
+    } catch {} finally { p.Dispose(); }
+  }
+  var gone = new List<int>();
+  foreach (var k in cache.Keys) if (!seen.Contains(k)) gone.Add(k);
+  foreach (var k in gone) cache.Remove(k);   // the process ended: forget it
   var arr = new string[set.Count]; set.CopyTo(arr); return arr;
 }
 '@
@@ -141,12 +155,13 @@ function TLog($m){ try { $lp="$env:ProgramData\CoolBoostAuto\tray.log"; if ((Tes
 $script:pendingOff=$false
 function Game-Tick {
   $now=Get-Date; $ac=On-AC
-  if ($ac -ne $script:lastAC) { $script:lastAC=$ac; $script:powerAt=$now; $script:acChangedAt=$now }
+  if ($ac -ne $script:lastAC) { $script:lastAC=$ac; $script:powerAt=$now; $script:acChangedAt=$now; $script:scanAt=[datetime]::MinValue }   # look for games right away
   $cb=Get-CB
   if ($script:cfg.paused) { $script:prevCB=$cb; return }   # paused: watch nothing, change nothing
   $quiet = ($now -gt $script:ourCmdUntil) -and (($now-$script:powerAt).TotalSeconds -gt 10)
 
-  if (($now-$script:scanAt).TotalSeconds -ge 4 -and -not $script:osdForm) {   # the scan can take a moment: not while a notice is moving
+  # every 4 s when plugged in; on battery the game rule can't act, so every 15 s is enough (keeps the status right)
+  if (($now-$script:scanAt).TotalSeconds -ge $(if ($ac) { 4 } else { 15 }) -and -not $script:osdForm) {   # the scan can take a moment: not while a notice is moving
     $script:scanAt=$now
     $games = @(if ($script:cfg.gameMode -and -not $script:cfg.paused) { Get-RunningGames })   # @() outside: one game must stay a list, not a string
     if ($games.Count -gt 0 -and -not $script:gs.active) {
