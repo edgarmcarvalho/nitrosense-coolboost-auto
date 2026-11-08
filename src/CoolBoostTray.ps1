@@ -148,7 +148,7 @@ function Do-Toggle {
 }
 
 # ---------- gaming state machine ----------
-function New-GS { @{active=$false; preGame=-1; weTurnedOn=$false; override=$false; name=''; paths=@()} }
+function New-GS { @{active=$false; preGame=-1; weTurnedOn=$false; override=$false; name=''; namePath=''; paths=@()} }
 $script:gs=New-GS
 $script:lastAC=On-AC; $script:powerAt=Get-Date; $script:acChangedAt=[datetime]::MinValue; $script:prevCB=Get-CB; $script:scanAt=[datetime]::MinValue
 function TLog($m){ try { $lp="$env:ProgramData\CoolBoostAuto\tray.log"; if ((Test-Path $lp) -and (Get-Item $lp).Length -gt 100KB) { Get-Content $lp -Tail 200 | Set-Content $lp }; "$(Get-Date -f 'yyyy-MM-dd HH:mm:ss') $m" | Out-File $lp -Append -Encoding utf8 } catch {} }
@@ -166,7 +166,7 @@ function Game-Tick {
     $games = @(if ($script:cfg.gameMode -and -not $script:cfg.paused) { Get-RunningGames })   # @() outside: one game must stay a list, not a string
     if ($games.Count -gt 0 -and -not $script:gs.active) {
       $script:pendingOff=$false
-      $script:gs=@{active=$true; preGame=$cb; weTurnedOn=$false; override=$false; name=(Get-Name $games[0]); paths=$games}
+      $script:gs=@{active=$true; preGame=$cb; weTurnedOn=$false; override=$false; name=(Get-Name $games[0]); namePath=$games[0]; paths=$games}
       TLog "Game started: $($script:gs.name) [$($games -join '; ')] CoolBoost=$cb AC=$ac"
       $script:last=''
     } elseif ($games.Count -eq 0 -and $script:gs.active) {
@@ -174,7 +174,12 @@ function Game-Tick {
       TLog "Game closed: $($script:gs.name) (revert to OFF: $revert)"
       if ($revert) { $script:pendingOff=$true }
       $script:gs=New-GS; $script:last=''
-    } elseif ($script:gs.active) { $script:gs.paths=$games }
+    } elseif ($script:gs.active) {
+      if ($games -notcontains $script:gs.namePath) {   # the game we named closed but another is still running: name that one
+        $script:gs.namePath=$games[0]; $script:gs.name=(Get-Name $games[0]); $script:last=''; TLog "Still gaming: $($script:gs.name)"
+      }
+      $script:gs.paths=$games
+    }
   }
 
   if ($script:pendingOff -and -not $script:busy) {
