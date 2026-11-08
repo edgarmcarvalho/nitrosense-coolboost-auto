@@ -39,6 +39,14 @@ On battery the battery rule always wins, so a game never turns CoolBoost on whil
 - **Hover** to see what's going on, for example *CoolBoost ON · plugged in · gaming: BeamNG.drive*.
 - **Right-click** for the menu.
 
+### The on-screen notice
+
+<img src="docs/notice.png" width="210" alt="Notice reading: CoolBoost ON, gaming: BeamNG.drive">
+
+Every time CoolBoost turns on or off, a small notice rises from behind the taskbar for about 3 seconds, like Windows' own volume and airplane-mode notices. It never takes focus and clicks go through it.
+
+When CoolBoost Auto made the switch, the second line says why: *unplugged*, *plugged in*, *gaming: (the game)*, *game closed*, *automation resumed*, or *manual, until the game closes*. When you switched it yourself (the tray icon, NitroSense, a hotkey), it shows just the new state. Turn it off with **On-screen notice** in the menu.
+
 ## The menu
 
 - **CoolBoost Auto x.y.z** and a **status line**: what CoolBoost is doing and why.
@@ -52,6 +60,7 @@ On battery the battery rule always wins, so a game never turns CoolBoost on whil
   - **Ignored apps**: click one to stop ignoring it.
 - **Pause automation**: stops all automatic switching until you untick it. Clicking the icon still works.
 - **Start with Windows**: start CoolBoost Auto when you sign in.
+- **On-screen notice**: show the notice above the taskbar when CoolBoost switches (on by default).
 - **Open NitroSense** · **Open log** (power and manual switching, or gaming automation).
 - **Exit (stops all automation)**: closes the icon and turns off every rule until you start CoolBoost Auto again from the Start menu. CoolBoost stays as it is.
 

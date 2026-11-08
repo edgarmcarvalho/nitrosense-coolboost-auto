@@ -13,7 +13,7 @@ $savedPath = "$env:ProgramFiles\CoolBoostAuto\saved_state.txt"
 # ---------- settings ----------
 function Get-CB { try { [int](Get-ItemProperty $regPath).CoolBoostMode } catch { -1 } }
 function Get-Cfg {
-  $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; paused=$false; startWithWindows=$true; gamesInclude=@(); gamesExclude=@()}
+  $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; paused=$false; startWithWindows=$true; osd=$true; gamesInclude=@(); gamesExclude=@()}
   try {
     $j=Get-Content $cfgPath -Raw | ConvertFrom-Json
     if ($j.offOnBattery -is [bool]) { $c.offOnBattery=$j.offOnBattery }
@@ -21,6 +21,7 @@ function Get-Cfg {
     if ($j.gameMode -is [bool]) { $c.gameMode=$j.gameMode }
     if ($j.paused -is [bool]) { $c.paused=$j.paused }
     if ($j.startWithWindows -is [bool]) { $c.startWithWindows=$j.startWithWindows }
+    if ($j.osd -is [bool]) { $c.osd=$j.osd }
     if ($j.gamesInclude) { $c.gamesInclude=@($j.gamesInclude | % { [string]$_ }) }
     if ($j.gamesExclude) { $c.gamesExclude=@($j.gamesExclude | % { [string]$_ }) }
   } catch {}
@@ -102,8 +103,8 @@ function Get-RunningGames {
 # ---------- switching ----------
 $script:busy=$false; $script:expect=-1; $script:until=Get-Date
 $script:ourCmdUntil=[datetime]::MinValue
-function Run-Task($name, [int]$expect){
-  $script:busy=$true; $script:expect=$expect
+function Run-Task($name, [int]$expect, [string]$reason=''){
+  $script:busy=$true; $script:expect=$expect; $script:osdReason=$reason; $script:cmdAt=Get-Date
   Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList "/run /tn $name"
   $script:until=(Get-Date).AddSeconds(4); $script:ourCmdUntil=(Get-Date).AddSeconds(10)
   $timer.Interval=100   # check every 0.1 s until the hardware confirms
@@ -114,23 +115,23 @@ function Do-Toggle {
   $want = if ((Get-CB) -eq 1) { 0 } else { 1 }
   # the icon changes only once the hardware confirms (the timer checks every 0.1 s while switching)
   $ni.Text = "CoolBoost Auto`nturning CoolBoost $(if($want){'ON'}else{'OFF'})..."
-  Run-Task $(if ($want) { 'CoolBoostOn' } else { 'CoolBoostOff' }) $want
+  Run-Task $(if ($want) { 'CoolBoostOn' } else { 'CoolBoostOff' }) $want $(if ($script:gs.active) { 'manual, until the game closes' } else { '' })
 }
 
 # ---------- gaming state machine ----------
 function New-GS { @{active=$false; preGame=-1; weTurnedOn=$false; override=$false; name=''; paths=@()} }
 $script:gs=New-GS
-$script:lastAC=On-AC; $script:powerAt=Get-Date; $script:prevCB=Get-CB; $script:scanAt=[datetime]::MinValue
+$script:lastAC=On-AC; $script:powerAt=Get-Date; $script:acChangedAt=[datetime]::MinValue; $script:prevCB=Get-CB; $script:scanAt=[datetime]::MinValue
 function TLog($m){ try { $lp="$env:ProgramData\CoolBoostAuto\tray.log"; if ((Test-Path $lp) -and (Get-Item $lp).Length -gt 100KB) { Get-Content $lp -Tail 200 | Set-Content $lp }; "$(Get-Date -f 'yyyy-MM-dd HH:mm:ss') $m" | Out-File $lp -Append -Encoding utf8 } catch {} }
 $script:pendingOff=$false
 function Game-Tick {
   $now=Get-Date; $ac=On-AC
-  if ($ac -ne $script:lastAC) { $script:lastAC=$ac; $script:powerAt=$now }
+  if ($ac -ne $script:lastAC) { $script:lastAC=$ac; $script:powerAt=$now; $script:acChangedAt=$now }
   $cb=Get-CB
   if ($script:cfg.paused) { $script:prevCB=$cb; return }   # paused: watch nothing, change nothing
   $quiet = ($now -gt $script:ourCmdUntil) -and (($now-$script:powerAt).TotalSeconds -gt 10)
 
-  if (($now-$script:scanAt).TotalSeconds -ge 4) {
+  if (($now-$script:scanAt).TotalSeconds -ge 4 -and -not $script:osdForm) {   # the scan can take a moment: not while a notice is moving
     $script:scanAt=$now
     $games = @(if ($script:cfg.gameMode -and -not $script:cfg.paused) { Get-RunningGames })   # @() outside: one game must stay a list, not a string
     if ($games.Count -gt 0 -and -not $script:gs.active) {
@@ -148,14 +149,14 @@ function Game-Tick {
 
   if ($script:pendingOff -and -not $script:busy) {
     $script:pendingOff=$false
-    if ((Get-CB) -eq 1) { TLog 'Turning CoolBoost OFF (back to pre-game state)'; Run-Task 'CoolBoostOff' 0 }
+    if ((Get-CB) -eq 1) { TLog 'Turning CoolBoost OFF (back to pre-game state)'; Run-Task 'CoolBoostOff' 0 'game closed' }
     $script:prevCB=$cb; return
   }
 
   if ($script:gs.active -and -not $script:busy) {
     # user (not us, not a power change) turned it off mid-game -> respect until the game closes
     if ($script:prevCB -eq 1 -and $cb -eq 0 -and $ac -and $quiet -and -not $script:gs.override) { $script:gs.override=$true; $script:last=''; TLog 'Manual change during game - automation paused until it closes' }
-    elseif (-not $script:gs.override -and $ac -and $cb -eq 0 -and $quiet) { $script:gs.weTurnedOn=$true; TLog "Turning CoolBoost ON for $($script:gs.name)"; Run-Task 'CoolBoostOn' 1 }
+    elseif (-not $script:gs.override -and $ac -and $cb -eq 0 -and $quiet) { $script:gs.weTurnedOn=$true; TLog "Turning CoolBoost ON for $($script:gs.name)"; Run-Task 'CoolBoostOn' 1 "gaming: $($script:gs.name)" }
   }
   $script:prevCB=$cb
 }
@@ -201,7 +202,7 @@ function Add-Include($path){ $cf=Get-Cfg; $cf.gamesInclude=@(@($cf.gamesInclude)
 function Add-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@(@($cf.gamesExclude) + $path | Select -Unique); $cf.gamesInclude=@($cf.gamesInclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 function Remove-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 # re-apply the plug/unplug rules now (used at startup and when automation resumes)
-function Run-Auto { $script:ourCmdUntil=(Get-Date).AddSeconds(10); Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto' }
+function Run-Auto([string]$reason) { $script:ourCmdUntil=(Get-Date).AddSeconds(10); $script:osdReason=$reason; $script:cmdAt=Get-Date; Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto' }
 function Open-NitroSense {
   # NitroSense / PredatorSense package names differ between models and versions, so look it up
   $pkg = Get-AppxPackage -Name 'AcerIncorporated.*' -EA SilentlyContinue | ? { $_.Name -match 'NitroSense|PredatorSense' } | Select -First 1
@@ -227,14 +228,16 @@ $miAdd = New-MenuItem 'Add a running app' $null
 $miIgnore = New-MenuItem 'Ignore a game' $null
 $miIgnored = New-MenuItem 'Ignored apps' $null
 $miGames.DropDownItems.AddRange([Windows.Forms.ToolStripItem[]]@($miDetected, (New-Sep), $miAdd, $miIgnore, $miIgnored))
-$miPause = New-MenuItem 'Pause automation' { $p = -not $script:cfg.paused; Set-Cfg 'paused' $p; if ($p) { TLog 'Automation paused' } else { TLog 'Automation resumed'; Run-Auto }; $script:last=''; Refresh }
+$miPause = New-MenuItem 'Pause automation' { $p = -not $script:cfg.paused; Set-Cfg 'paused' $p; if ($p) { TLog 'Automation paused' } else { TLog 'Automation resumed'; Run-Auto 'automation resumed' }; $script:last=''; Refresh }
 $miStart = New-MenuItem 'Start with Windows' { Set-Cfg 'startWithWindows' (-not $script:cfg.startWithWindows) }
+$miOsd = New-MenuItem 'On-screen notice' { Set-Cfg 'osd' (-not $script:cfg.osd) }
+$miOsd.ToolTipText = 'Show a notice above the taskbar when CoolBoost turns on or off'
 $miOpenNS = New-MenuItem 'Open NitroSense' { Open-NitroSense }
 $miLogs = New-MenuItem 'Open log' $null
 [void]$miLogs.DropDownItems.Add((New-MenuItem 'Power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
 [void]$miLogs.DropDownItems.Add((New-MenuItem 'Gaming automation' { $p = "$env:ProgramData\CoolBoostAuto\tray.log"; if (-not (Test-Path $p)) { New-Item $p -ItemType File -Force | Out-Null }; Start-Process notepad $p }))
 $miExit = New-MenuItem 'Exit (stops all automation)' { TLog 'Exited - all automation stopped'; $ni.Visible=$false; [Windows.Forms.Application]::Exit() }
-$menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miStart, $miOpenNS, $miLogs, (New-Sep), $miExit))
+$menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miStart, $miOsd, $miOpenNS, $miLogs, (New-Sep), $miExit))
 
 $skipProc='(?i)^(explorer|applicationframehost|textinputhost|systemsettings|shellexperiencehost|startmenuexperiencehost|searchhost|lockapp|powershell|pwsh|conhost|windowsterminal|nitrosense|predatorsense)$'
 function Fill-List($parent, $items, $emptyText) {
@@ -252,6 +255,7 @@ $menu.add_Opening({
   $miGame.Checked = $c.gameMode
   $miPause.Checked = $c.paused
   $miStart.Checked = $c.startWithWindows
+  $miOsd.Checked = $c.osd
   # Games > Detected now
   $miDetected.Text = if ($script:gs.active) { 'Detected now: ' + ((@($script:gs.paths) | % { Get-Name $_ } | Select -Unique) -join ', ') } else { 'No game running' }
   # Games > Add a running app: open windows that aren't games yet
@@ -286,13 +290,129 @@ $ni.add_MouseUp({ param($s,$e)
 })
 $ni.add_MouseClick({ param($s,$e) if ($e.Button -eq 'Left') { Do-Toggle } })
 
+# ---------- on-screen notice ----------
+# Windows 11 flyout style: rises from behind the taskbar on Fluent's "decelerate" curve, stays ~2.7 s,
+# drops back. Never takes focus, clicks pass through it, not in Alt+Tab.
+Add-Type -Namespace CB -Name Rgn -MemberDefinition @'
+[DllImport("gdi32.dll")] public static extern IntPtr CreateRoundRectRgn(int x1, int y1, int x2, int y2, int w, int h);
+[DllImport("gdi32.dll")] public static extern IntPtr CreateRectRgn(int x1, int y1, int x2, int y2);
+[DllImport("gdi32.dll")] public static extern int CombineRgn(IntPtr dst, IntPtr a, IntPtr b, int mode);
+[DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr o);
+[DllImport("user32.dll")] public static extern int SetWindowRgn(IntPtr h, IntPtr rgn, bool redraw);
+'@
+Add-Type -ReferencedAssemblies System.Windows.Forms -TypeDefinition @'
+using System.Windows.Forms;
+public class CoolBoostOsdForm : Form {
+  public CoolBoostOsdForm() { this.DoubleBuffered = true; }
+  protected override bool ShowWithoutActivation { get { return true; } }
+  // NOACTIVATE | TOOLWINDOW | TRANSPARENT (click-through) | TOPMOST
+  protected override CreateParams CreateParams { get { var p = base.CreateParams; p.ExStyle |= 0x08000000 | 0x00000080 | 0x00000020 | 0x00000008; return p; } }
+}
+'@
+$script:osdDpi = [Drawing.Graphics]::FromHwnd([IntPtr]::Zero).DpiX / 96.0
+function Px([double]$v) { [int][Math]::Round($v * $script:osdDpi) }   # (not "Sc": that's an alias of Set-Content)
+# the best PNG frame straight from the .ico (Drawing.Icon can't draw PNG-compressed frames)
+function Load-IcoFrame($file, $want) {
+  $b = [IO.File]::ReadAllBytes($file); $n = [BitConverter]::ToUInt16($b, 4); $best = $null; $bw = 9999
+  for ($i = 0; $i -lt $n; $i++) { $o = 6 + 16*$i; $w = $b[$o]; if ($w -eq 0) { $w = 256 }
+    $sz = [BitConverter]::ToInt32($b, $o+8); $off = [BitConverter]::ToInt32($b, $o+12)
+    if ($w -ge $want -and $w -lt $bw) { $bw = $w; $best = [byte[]]$b[$off..($off+$sz-1)] } }
+  if ($best) { [Drawing.Image]::FromStream((New-Object IO.MemoryStream (,$best))) }
+}
+$script:osdImg = @{}
+foreach ($k in 'on','off') { try { $script:osdImg[$k] = Load-IcoFrame "$env:ProgramData\CoolBoostAuto\tray_$k.ico" (Px 24) } catch {} }
+$script:osdFontT = New-Object Drawing.Font 'Segoe UI Variable Text', 10.5, ([Drawing.FontStyle]::Bold)
+if ($script:osdFontT.Name -ne 'Segoe UI Variable Text') { $script:osdFontT = New-Object Drawing.Font 'Segoe UI', 10.5, ([Drawing.FontStyle]::Bold) }
+$script:osdFontR = New-Object Drawing.Font $script:osdFontT.FontFamily, 8.5
+$script:osdGrey = New-Object Drawing.SolidBrush ([Drawing.Color]::FromArgb(190, 190, 190))
+$script:osdForm = $null; $script:osdCB = Get-CB; $script:osdReason = ''; $script:cmdAt = [datetime]::MinValue
+$osdSw = New-Object Diagnostics.Stopwatch
+$osdTimer = New-Object Windows.Forms.Timer; $osdTimer.Interval = 8
+
+# show only the part above the taskbar, with rounded corners
+function Osd-Clip([int]$top) {
+  $f = $script:osdForm; if ($top -eq $script:osdLastTop) { return }; $script:osdLastTop = $top
+  $vis = [Math]::Max(0, [Math]::Min($f.Height, $script:osdWa.Bottom - $top))
+  $r = Px 8
+  $round = [CB.Rgn]::CreateRoundRectRgn(0, 0, $f.Width + 1, $f.Height + 1, 2 * $r, 2 * $r)
+  $rect = [CB.Rgn]::CreateRectRgn(0, 0, $f.Width, $vis)
+  [void][CB.Rgn]::CombineRgn($round, $round, $rect, 1)      # RGN_AND
+  [void][CB.Rgn]::SetWindowRgn($f.Handle, $round, $true)    # Windows owns the region now
+  [void][CB.Rgn]::DeleteObject($rect)
+}
+function Close-Osd {
+  $osdTimer.Stop(); $osdSw.Reset()
+  if ($script:osdForm -and -not $script:osdForm.IsDisposed) { $script:osdForm.Close(); $script:osdForm.Dispose() }
+  $script:osdForm = $null
+}
+$osdTimer.add_Tick({
+  try {
+    $f = $script:osdForm; if (-not $f -or $f.IsDisposed) { $osdTimer.Stop(); return }
+    $ms = $osdSw.ElapsedMilliseconds
+    if ($ms -lt 270)      { $u = [Math]::Pow($ms / 270.0, 1/3.0); $k = 3*$u*$u - 2*$u*$u*$u }   # cubic-bezier(0,0,0,1)
+    elseif ($ms -lt 2970) { $k = 1 }
+    elseif ($ms -lt 3090) { $p = ($ms - 2970) / 120.0; $k = 1 - $p*$p*$p }                       # accelerate out
+    else { Close-Osd; return }
+    $top = [int][Math]::Round($script:osdStart + ($script:osdEnd - $script:osdStart) * $k)
+    if ($f.Top -ne $top) { $f.Top = $top }
+    Osd-Clip $top
+  } catch { TLog "On-screen notice error: $_"; Close-Osd }
+})
+function Show-Osd([int]$state, [string]$reason) {
+  Close-Osd   # a newer notice replaces the one on screen
+  $f = New-Object CoolBoostOsdForm
+  $f.FormBorderStyle = 'None'; $f.ShowInTaskbar = $false; $f.TopMost = $true; $f.StartPosition = 'Manual'
+  $f.BackColor = [Drawing.Color]::FromArgb(44, 44, 44)
+  $f.Size = New-Object Drawing.Size (Px 210), (Px 46)
+  $f.Tag = @{ title = "CoolBoost $(if ($state) { 'ON' } else { 'OFF' })"; reason = $reason; img = $script:osdImg[$(if ($state) { 'on' } else { 'off' })] }
+  $f.add_Paint({ param($snd, $ev)
+    $d = $snd.Tag; $g = $ev.Graphics
+    $g.SmoothingMode = 'AntiAlias'; $g.TextRenderingHint = 'ClearTypeGridFit'; $g.InterpolationMode = 'HighQualityBicubic'
+    if ($d.img) { $g.DrawImage($d.img, [Drawing.Rectangle]::new((Px 14), [int](($snd.Height - (Px 24)) / 2), (Px 24), (Px 24))) }
+    if ($d.reason) {
+      $g.DrawString($d.title, $script:osdFontT, [Drawing.Brushes]::White, (Px 48), (Px 5))
+      $g.DrawString($d.reason, $script:osdFontR, $script:osdGrey, (Px 48), (Px 24))
+    } else { $g.DrawString($d.title, $script:osdFontT, [Drawing.Brushes]::White, (Px 48), [int](($snd.Height - $g.MeasureString($d.title, $script:osdFontT).Height) / 2)) }
+  })
+  # bottom centre of the main screen; the taskbar's top edge is the bottom of the working area
+  $script:osdWa = [Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+  $script:osdStart = $script:osdWa.Bottom
+  $script:osdEnd = $script:osdWa.Bottom - $f.Height - (Px 14)
+  $f.Location = New-Object Drawing.Point ($script:osdWa.X + [int](($script:osdWa.Width - $f.Width) / 2)), $script:osdStart
+  $script:osdLastTop = -99999
+  $script:osdForm = $f
+  $f.add_HandleCreated({ Osd-Clip $script:osdStart })   # hidden before it is ever drawn: no flash over the taskbar
+  $f.add_Shown({ $osdSw.Restart(); $osdTimer.Start() })
+  $f.Show()
+}
+# why it switched: our own command, a plug/unplug, or nothing to say (manual: NitroSense, a hotkey, the tray click).
+# whichever happened last wins, and a command explains only one switch
+function Get-OsdReason {
+  $now = Get-Date; $ac = On-AC
+  $powerAt = if ($ac -ne $script:lastAC) { $now } else { $script:acChangedAt }
+  $power = ($now - $powerAt).TotalSeconds -lt 15
+  $cmd = ($now - $script:cmdAt).TotalSeconds -lt 10
+  $r = if ($cmd -and (-not $power -or $script:cmdAt -gt $powerAt)) { $script:osdReason }
+       elseif ($power) { if ($ac) { 'plugged in' } else { 'unplugged' } }
+       else { '' }
+  $script:cmdAt = [datetime]::MinValue
+  $r
+}
+function Check-Osd {
+  $cb = Get-CB
+  if ($cb -notin 0,1 -or $cb -eq $script:osdCB) { return }
+  $prev = $script:osdCB; $script:osdCB = $cb
+  if ($prev -in 0,1 -and $script:cfg.osd) { try { Show-Osd $cb (Get-OsdReason) } catch { TLog "On-screen notice failed: $_" } }
+}
+
 # ---------- loop ----------
 $timer=New-Object Windows.Forms.Timer
-$timer.Interval=1500
+$timer.Interval=500
 $timer.add_Tick({
   try {
+    Check-Osd
     if ($script:busy) {
-      if ((Get-CB) -eq $script:expect -or (Get-Date) -gt $script:until) { $script:busy=$false; $timer.Interval=1500; $script:last=''; Refresh }
+      if ((Get-CB) -eq $script:expect -or (Get-Date) -gt $script:until) { $script:busy=$false; $timer.Interval=500; $script:last=''; Refresh }
       return
     }
     $script:cfg=Get-Cfg
@@ -302,7 +422,7 @@ $timer.add_Tick({
 })
 $timer.Start()
 Refresh
-Run-Auto
+Run-Auto $(if (On-AC) { 'plugged in' } else { 'on battery' })
 [Windows.Forms.Application]::Run()
 $ni.Dispose(); $mtx.ReleaseMutex()
 

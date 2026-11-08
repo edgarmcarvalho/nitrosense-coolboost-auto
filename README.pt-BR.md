@@ -39,6 +39,14 @@ Na bateria, a regra da bateria sempre vence: um jogo nunca liga o CoolBoost com 
 - **Passe o mouse** para ver o que está acontecendo, por exemplo *CoolBoost ON · plugged in · gaming: BeamNG.drive*.
 - **Clique direito** abre o menu.
 
+### O aviso na tela
+
+<img src="docs/notice.png" width="210" alt="Aviso: CoolBoost ON, gaming: BeamNG.drive">
+
+Sempre que o CoolBoost liga ou desliga, um pequeno aviso sobe de trás da barra de tarefas por uns 3 segundos, igual aos avisos de volume e modo avião do próprio Windows. Ele nunca rouba o foco e os cliques passam através dele.
+
+Quando a troca foi feita pelo CoolBoost Auto, a segunda linha diz o motivo (em inglês): *unplugged* (carregador desconectado), *plugged in* (conectado), *gaming: (o jogo)*, *game closed* (jogo fechado), *automation resumed* (automação retomada) ou *manual, until the game closes* (manual até o jogo fechar). Quando foi você quem trocou (ícone da bandeja, NitroSense, atalho de teclado), ele mostra só o novo estado. Para desligar, use **On-screen notice** no menu.
+
 ## O menu
 
 O menu é em inglês. O que cada item faz:
@@ -54,6 +62,7 @@ O menu é em inglês. O que cada item faz:
   - **Ignored apps**: apps ignorados; clique em um para voltar a considerá-lo.
 - **Pause automation**: pausa toda a troca automática até você desmarcar. O clique no ícone continua funcionando.
 - **Start with Windows**: iniciar o CoolBoost Auto ao entrar no Windows.
+- **On-screen notice**: mostrar o aviso acima da barra de tarefas quando o CoolBoost troca (ligado por padrão).
 - **Open NitroSense** · **Open log** (troca por energia e manual, ou automação de jogos).
 - **Exit (stops all automation)**: fecha o ícone e desliga todas as regras até você abrir o CoolBoost Auto de novo pelo menu Iniciar. O CoolBoost fica como está.
 
