@@ -14,8 +14,11 @@ $savedPath = "$env:ProgramFiles\CoolBoostAuto\saved_state.txt"
 function Get-CB { try { [int](Get-ItemProperty $regPath).CoolBoostMode } catch { -1 } }
 function Get-Cfg {
   $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; paused=$false; startWithWindows=$true; osd=$true; gamesInclude=@(); gamesExclude=@()}
+  $script:cfgReadOk=$false
   try {
-    $j=Get-Content $cfgPath -Raw | ConvertFrom-Json
+    $j=Get-Content $cfgPath -Raw -EA Stop | ConvertFrom-Json -EA Stop
+    if ($null -eq $j) { throw 'empty settings file' }
+    $script:cfgReadOk=$true
     if ($j.offOnBattery -is [bool]) { $c.offOnBattery=$j.offOnBattery }
     if ($j.onPlugIn -is [string] -and $j.onPlugIn -in 'restore','on','off','keep') { $c.onPlugIn=$j.onPlugIn }
     if ($j.gameMode -is [bool]) { $c.gameMode=$j.gameMode }
@@ -27,8 +30,20 @@ function Get-Cfg {
   } catch {}
   $c
 }
+# re-read settings.json only when it has changed (it's checked twice a second).
+# A failed read (file half-written, locked, missing) keeps the current settings and is retried on the next check.
+$script:cfgStamp = ''
+function Update-Cfg {
+  $fi = New-Object IO.FileInfo $cfgPath
+  $stamp = if ($fi.Exists) { "$($fi.LastWriteTimeUtc.Ticks)|$($fi.Length)" } else { 'none' }
+  if ($stamp -eq $script:cfgStamp) { return }
+  $c = Get-Cfg
+  if ($script:cfgReadOk) { $script:cfg = $c; $script:cfgStamp = $stamp; $script:last = '' }
+}
 function Save-Cfg($c){ ConvertTo-Json -InputObject $c -Compress | Set-Content $cfgPath -Encoding UTF8; $script:cfg=$c; $script:last='' }
-function Set-Cfg($key,$val){ $c=Get-Cfg; $c[$key]=$val; Save-Cfg $c; $script:cfg=$c }
+# for saving: the file as it is now, or the settings in memory if it can't be read (never save defaults over it)
+function Read-Cfg { $c=Get-Cfg; if ($script:cfgReadOk) { $c } else { $script:cfg } }
+function Set-Cfg($key,$val){ $c=Read-Cfg; $c[$key]=$val; Save-Cfg $c; $script:cfg=$c }
 function Restore-Pending { try { (Test-Path $savedPath) -and ((Get-Content $savedPath -Raw).Trim() -eq '1') } catch { $false } }
 function On-AC { [Windows.Forms.SystemInformation]::PowerStatus.PowerLineStatus -ne 'Offline' }
 $script:cfg = Get-Cfg
@@ -198,9 +213,9 @@ function New-MenuItem($text,$onClick){ $m=New-Object Windows.Forms.ToolStripMenu
 function New-Info($text){ $m=New-MenuItem $text $null; $m.Enabled=$false; $m }
 function New-Sep { New-Object Windows.Forms.ToolStripSeparator }
 function Set-Bold($m){ $m.Font = New-Object Drawing.Font($m.Font, [Drawing.FontStyle]::Bold) }
-function Add-Include($path){ $cf=Get-Cfg; $cf.gamesInclude=@(@($cf.gamesInclude) + $path | Select -Unique); $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
-function Add-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@(@($cf.gamesExclude) + $path | Select -Unique); $cf.gamesInclude=@($cf.gamesInclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
-function Remove-Exclude($path){ $cf=Get-Cfg; $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
+function Add-Include($path){ $cf=Read-Cfg; $cf.gamesInclude=@(@($cf.gamesInclude) + $path | Select -Unique); $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
+function Add-Exclude($path){ $cf=Read-Cfg; $cf.gamesExclude=@(@($cf.gamesExclude) + $path | Select -Unique); $cf.gamesInclude=@($cf.gamesInclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
+function Remove-Exclude($path){ $cf=Read-Cfg; $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 # re-apply the plug/unplug rules now (used at startup and when automation resumes)
 function Run-Auto([string]$reason) { $script:ourCmdUntil=(Get-Date).AddSeconds(10); $script:osdReason=$reason; $script:cmdAt=Get-Date; Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto' }
 function Open-NitroSense {
@@ -246,7 +261,7 @@ function Fill-List($parent, $items, $emptyText) {
   if ($parent.DropDownItems.Count -eq 0) { [void]$parent.DropDownItems.Add((New-Info $emptyText)) }
 }
 $menu.add_Opening({
-  $script:cfg=Get-Cfg; $c=$script:cfg; $cb=Get-CB
+  Update-Cfg; $c=$script:cfg; $cb=Get-CB
   $miStatus.Text = Get-StatusText
   $miToggle.Text = if ($cb -eq 1) { 'Turn CoolBoost OFF' } else { 'Turn CoolBoost ON' }
   $miBattery.Checked = $c.offOnBattery
@@ -415,7 +430,7 @@ $timer.add_Tick({
       if ((Get-CB) -eq $script:expect -or (Get-Date) -gt $script:until) { $script:busy=$false; $timer.Interval=500; $script:last=''; Refresh }
       return
     }
-    $script:cfg=Get-Cfg
+    Update-Cfg
     Game-Tick
     if (-not $script:busy) { Refresh }
   } catch {}
