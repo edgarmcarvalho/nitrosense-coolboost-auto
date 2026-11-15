@@ -128,7 +128,7 @@ The installer checks for the CoolBoost interface and NitroSense, not for a model
 
 ## Privacy
 
-No telemetry, no account, nothing leaves your laptop. The only exception is the optional update check, which asks GitHub for the latest release number when you turn it on or click it.
+No telemetry, no account, nothing leaves your laptop. The only exception is the optional update check, which asks GitHub for the latest release number when you turn it on or click it. If you then click the update itself, the new version is downloaded from GitHub and installed; that only happens when you click.
 
 ## Code signing policy
 

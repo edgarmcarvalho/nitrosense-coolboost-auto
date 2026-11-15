@@ -128,7 +128,7 @@ O instalador verifica a interface do CoolBoost e o NitroSense, não o nome do mo
 
 ## Privacidade
 
-Sem telemetria, sem conta, nada sai do seu notebook. A única exceção é a verificação opcional de atualizações, que pergunta ao GitHub o número da versão mais recente quando você a liga ou clica nela.
+Sem telemetria, sem conta, nada sai do seu notebook. A única exceção é a verificação opcional de atualizações, que pergunta ao GitHub o número da versão mais recente quando você a liga ou clica nela. Se você clicar na atualização em si, a nova versão é baixada do GitHub e instalada; isso só acontece quando você clica.
 
 ## Política de assinatura de código
 
