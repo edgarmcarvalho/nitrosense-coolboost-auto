@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-555)](LICENSE)
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-555)
 
-**Automatic CoolBoost™ for Acer Nitro laptops.** CoolBoost Auto turns CoolBoost on and off for you, based on what you're doing: **off on battery**, **back to your choice when you plug in**, and **on while you're gaming**. When you want to decide yourself, one click on the tray icon switches it. NitroSense never has to open.
+**Automatic CoolBoost™ for Acer Nitro laptops.** It turns CoolBoost **off on battery**, **back on your terms when you plug in**, and **on while you're gaming**. One click on the tray icon switches it whenever you want. NitroSense never has to open.
 
 **[⬇ Download the latest version](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest)** · 🇧🇷 [Leia em português](README.pt-BR.md)
 
@@ -17,157 +17,134 @@
 
 | When… | CoolBoost Auto… |
 |---|---|
-| **You unplug the charger** | Turns CoolBoost **off**, so the fans don't drain the battery, and remembers whether it was on. |
-| **You plug it back in** | Applies your rule: **restore** the state from before you unplugged (default), **always on**, **always off**, or **keep** the battery state. |
-| **A game starts** (while plugged in) | Turns CoolBoost **on**, and puts it back the way it was when the game closes. |
-| **You switch CoolBoost yourself during a game** | Leaves your choice alone until the game closes, whether you used the tray icon or NitroSense. |
-| **The laptop starts or wakes from sleep** | Checks again, in case you plugged in or unplugged in the meantime. |
-| **You pause the automation** | Changes nothing until you resume. Then it catches up with whatever changed. |
+| **You unplug the charger** | Turns CoolBoost **off**, so the fans don't drain the battery. |
+| **You plug it back in** | Applies your rule: **restore** what it was before you unplugged (default), **always on**, **always off**, or **keep** the battery state. |
+| **A game starts** (plugged in) | Turns CoolBoost **on**, and puts it back when the game closes. |
+| **You switch it yourself during a game** | Respects your choice until the game closes. |
+| **The laptop starts or wakes up** | Checks again, in case the power source changed. |
 
-On battery the battery rule always wins, so a game never turns CoolBoost on while you're unplugged. If you plug in during a game, CoolBoost goes back on a few seconds later.
+On battery, the battery rule always wins: a game never turns CoolBoost on while you're unplugged.
 
-## The tray icon
+## Install
+
+1. Download **`CoolBoostAuto-Setup-x.y.z.exe`** from the [latest release](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest).
+2. Run it and accept the admin prompt. It checks your laptop first and installs nothing if it isn't supported.
+3. A red or grey fan appears next to the clock (or under the **^** arrow; drag it onto the taskbar to keep it visible).
+
+**Upgrading:** run the newer setup over the old one. Your settings are kept.
+
+**Uninstalling:** *Settings → Apps → Installed apps → CoolBoost Auto → Uninstall*. Everything is removed; CoolBoost stays in its current state.
+
+> **Windows warnings:** the installer isn't code-signed yet. SmartScreen may say *Windows protected your PC* (click **More info → Run anyway**). If **Smart App Control** blocks it, use the scripts below.
+
+<details><summary><b>Install with scripts instead of the wizard</b></summary>
+
+Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release, extract it, then right-click **`install.ps1`** → **Run with PowerShell**.
+
+- `-NoAutostart`: don't start with Windows (you can turn it on later from the menu).
+- To remove: run **`uninstall.ps1`** (add `-KeepSettings` to keep your settings).
+</details>
+
+## Using it
 
 | Icon | Meaning |
 |:---:|---|
 | <img src="docs/icons/tray_on.png" width="32" alt="red fan"> | CoolBoost is **on** |
 | <img src="docs/icons/tray_off.png" width="32" alt="grey fan"> | CoolBoost is **off** |
-| <img src="docs/icons/tray_on_game.png" width="32" alt="red fan, green badge"> <img src="docs/icons/tray_off_game.png" width="32" alt="grey fan, green badge"> | A **game is running** and the automation is in charge |
-| <img src="docs/icons/tray_on_paused.png" width="32" alt="red fan, amber pause badge"> <img src="docs/icons/tray_off_paused.png" width="32" alt="grey fan, amber pause badge"> | The **automation is paused**: nothing switches by itself |
+| <img src="docs/icons/tray_on_game.png" width="32" alt="red fan, green badge"> <img src="docs/icons/tray_off_game.png" width="32" alt="grey fan, green badge"> | A **game is running** |
+| <img src="docs/icons/tray_on_paused.png" width="32" alt="red fan, amber pause badge"> <img src="docs/icons/tray_off_paused.png" width="32" alt="grey fan, amber pause badge"> | Automation is **paused** |
 
-- **Left-click** switches CoolBoost on or off, with no admin prompt. The icon changes once the laptop confirms the switch, so it always shows the real state.
-- **Hover** to see what's going on, for example *CoolBoost ON · plugged in · gaming: BeamNG.drive*.
+- **Left-click** switches CoolBoost, with no admin prompt.
+- **Hover** to see what's going on, e.g. *CoolBoost ON · plugged in · gaming: BeamNG.drive*.
 - **Right-click** for the menu.
 
-### The on-screen notice
+<img src="docs/notice.png" width="210" align="right" alt="Notice reading: CoolBoost ON, gaming: BeamNG.drive">
 
-<img src="docs/notice.png" width="210" alt="Notice reading: CoolBoost ON, gaming: BeamNG.drive">
+Whenever CoolBoost switches, a small notice appears above the taskbar for about 3 seconds and says why (*unplugged*, *gaming: (the game)*, *game closed*…). It never takes focus; turn it off with **On-screen notice** in the menu.
 
-Every time CoolBoost turns on or off, a small notice rises from behind the taskbar for about 3 seconds, like Windows' own volume and airplane-mode notices. It never takes focus and clicks go through it.
+<details><summary><b>Everything in the menu</b></summary>
 
-When CoolBoost Auto made the switch, the second line says why: *unplugged*, *plugged in*, *gaming: (the game)*, *game closed*, *automation resumed*, or *manual, until the game closes*. When you switched it yourself (the tray icon, NitroSense, a hotkey), it shows just the new state. Turn it off with **On-screen notice** in the menu.
-
-## The menu
-
-- **CoolBoost Auto x.y.z** and a **status line**: what CoolBoost is doing and why.
 - **Turn CoolBoost ON / OFF**: same as a left-click.
-- **On battery: turn CoolBoost off**: the battery rule. *Restore* (below) needs it, because that's when the state is remembered.
-- **When plugged in** ▸ *Restore state from before unplugging* · *Always turn CoolBoost ON* · *Always turn CoolBoost OFF* · *Keep the battery state*
+- **On battery: turn CoolBoost off**: the battery rule (needed for *Restore*).
+- **When plugged in** ▸ *Restore state from before unplugging* · *Always ON* · *Always OFF* · *Keep the battery state*.
 - **While gaming: turn CoolBoost on (when plugged in)**: the game rule.
-- **Games** ▸ the games detected right now, plus:
-  - **Add a running app**: treat an open app as a game, for anything that isn't detected automatically.
-  - **Ignore a game**: for something that turns CoolBoost on by mistake.
-  - **Ignored apps**: click one to stop ignoring it.
-- **Pause automation**: stops all automatic switching until you untick it. Clicking the icon still works.
-- **Start with Windows**: start CoolBoost Auto when you sign in.
-- **On-screen notice**: show the notice above the taskbar when CoolBoost switches (on by default).
-- **Check for updates automatically**: once a day, asks GitHub for the latest version number and tells you if there is a newer one. Off by default.
-- **Check for updates now**: the same check, once, when you click. It only tells you; it never downloads or installs anything. When there is a newer version, a **Version x.y.z is available** line appears at the top of the menu and opens the download page.
-- **Open NitroSense** · **Open log** (power and manual switching, or gaming automation).
-- **Exit (stops all automation)**: closes the icon and turns off every rule until you start CoolBoost Auto again from the Start menu. CoolBoost stays as it is.
+- **Games** ▸ the games detected now, **Add a running app** (treat an open app as a game), **Ignore a game**, and **Ignored apps** (click one to stop ignoring it).
+- **Pause automation**: nothing switches by itself until you untick it. Clicking the icon still works.
+- **Start with Windows** · **On-screen notice**.
+- **Check for updates automatically** (off by default) · **Check for updates now**: asks GitHub for the latest version number and tells you if there's a newer one. It never downloads or installs anything.
+- **Open NitroSense** · **Open log**.
+- **Exit (stops all automation)**: closes the icon and stops every rule until you start CoolBoost Auto again from the Start menu.
+</details>
 
 ## How games are detected
 
-CoolBoost Auto looks at the running programs every few seconds and treats one as a game if:
+Every few seconds, CoolBoost Auto treats a running program as a game if:
 
-- **Windows already knows it's a game** (the same list Game Bar uses), or
-- it's installed by a game store the app knows: **Steam** (all your libraries), **Epic Games**, **GOG**, **Ubisoft Connect**, **EA app**, **Battle.net**, the **Xbox app / Game Pass**, **Amazon Games**, **Riot Games**, **itch.io** or **Rockstar Games**, or
+- **Windows already knows it's a game** (the list Game Bar uses), or
+- it was installed by **Steam**, **Epic Games**, **GOG**, **Ubisoft Connect**, **EA app**, **Battle.net**, the **Xbox app / Game Pass**, **Amazon Games**, **Riot Games**, **itch.io** or **Rockstar Games**, or
 - you added it with **Games ▸ Add a running app**.
 
-New games are picked up automatically, with no list to maintain. Launchers, uninstallers, crash reporters, updaters and anti-cheat services are ignored. A game is recognised by its executable, so games started through a launcher are detected once the game itself is running. If something is detected by mistake, use **Games ▸ Ignore a game**.
+There's no list to maintain. Launchers, installers, updaters, crash reporters and anti-cheat services are ignored. Games bought elsewhere (Nuuvem, Humble…) are covered through the store they're activated on; a DRM-free game in a custom folder can be added by hand.
 
 ## Compatibility
 
 | | |
 |---|---|
-| **Tested on** | Acer Nitro 5 **AN515-55** (Windows 11, NitroSense 3.01) · Acer Nitro 5 **AN515-57** (reported working by a user) |
-| **Likely works on** | Other Acer Nitro models with NitroSense whose firmware has the `APGeAction` WMI interface |
-| **Not supported yet** | Predator laptops with PredatorSense (help testing is welcome: run the read-only check and [send a report](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues/new?template=compatibility-report.yml)) |
-| **Not supported** | Acer Predator Triton 300 **PT315-53**: Acer doesn't offer CoolBoost on this model (checked by a user) |
-| **Requires** | NitroSense installed (it doesn't need to be open), Windows 10 or 11 (64-bit), an admin account to install |
+| **Works on** | Acer Nitro 5 **AN515-55** (tested, Windows 11, NitroSense 3.01) · Acer Nitro 5 **AN515-57** (reported by a user) |
+| **Likely works on** | Other Acer Nitro models with NitroSense |
+| **Not supported yet** | Predator laptops with PredatorSense (testers welcome) |
+| **Not supported** | Predator Triton 300 **PT315-53** (Acer doesn't offer CoolBoost on it) |
+| **Requires** | NitroSense installed (it doesn't need to be open), Windows 10 or 11 64-bit, an admin account to install |
 
-The installer checks for the CoolBoost interface and for NitroSense, not for a model name. If either is missing, it stops without changing anything. Tried it on another model? Please [send a compatibility report](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues/new?template=compatibility-report.yml) saying whether it worked, so it can be added here. The report form includes a read-only hardware check ([	ools/hardware-check.ps1](tools/hardware-check.ps1)) that only reads the CoolBoost and fan status and never changes a setting, so it is safe to run even if you don't install anything.
+The installer checks for the CoolBoost interface and NitroSense, not for a model name, and changes nothing if either is missing.
 
-## Install
-
-1. Download **`CoolBoostAuto-Setup-x.y.z.exe`** from the [latest release](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest).
-2. Run it, accept the admin (UAC) prompt and go through the wizard. It checks your laptop first and stops before installing anything if it isn't supported.
-3. A red or grey fan appears next to the clock. If you don't see it, it's under the **^** arrow; drag it onto the taskbar to keep it visible.
-
-**Upgrading:** run the newer setup over the old one. Your settings are kept.
-
-**Windows warnings:** the installer isn't code-signed yet (see [Code signing policy](#code-signing-policy)). SmartScreen may show *Windows protected your PC*: click **More info → Run anyway**. If **Smart App Control** blocks it, use the scripts zip below.
-
-<details><summary><b>Install with scripts instead of the wizard</b></summary>
-
-Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release (or **Code → Download ZIP**), extract it, then right-click **`install.ps1`** → **Run with PowerShell**.
-
-- `-NoAutostart`: turns **Start with Windows** off (you can turn it back on from the menu).
-- To remove: run **`uninstall.ps1`**. Add `-KeepSettings` to keep your settings for a later reinstall.
-</details>
-
-## Uninstall
-
-**Settings → Apps → Installed apps → CoolBoost Auto → Uninstall.** Everything is removed: the tray icon, the scheduled tasks, the files and the shortcuts. CoolBoost stays in whatever state it was in; change it in NitroSense if needed.
+**Tried it on another model?** Please [send a compatibility report](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues/new?template=compatibility-report.yml), even if it didn't work. The form includes an optional, read-only [hardware check](tools/hardware-check.ps1) that never changes a setting.
 
 ## Troubleshooting
 
-**CoolBoost changed when I didn't expect it.** Hover over the icon or open the menu to see the status line. Then check **Open log**: every automatic and manual switch is written there with the reason. If it looks like a bug, please [open an issue](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues) with your laptop model and both logs.
+**CoolBoost changed when I didn't expect it.** Hover over the icon to see the status, then check **Open log**: every switch is logged with its reason. If it looks like a bug, [open an issue](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues) with your model and both logs.
 
-**A game doesn't turn CoolBoost on.** Check that you're plugged in and that the icon has no pause badge. Then use **Games ▸ Add a running app** while the game is open.
+**A game doesn't turn CoolBoost on.** Make sure you're plugged in and the icon has no pause badge, then use **Games ▸ Add a running app** while the game is open.
 
-**Something that isn't a game turns CoolBoost on.** Use **Games ▸ Ignore a game**.
+**Something that isn't a game turns it on.** Use **Games ▸ Ignore a game**.
 
-**The icon disappeared.** You probably clicked **Exit**. Start it again from the Start menu: **CoolBoost Auto**.
+**The icon disappeared.** You probably clicked **Exit**. Start **CoolBoost Auto** again from the Start menu.
 
-**Does it slow the laptop down?** No. At rest it uses about 0.1% of the CPU and around 130 MB of memory (it runs on Windows PowerShell).
+**Does it slow the laptop down?** No. At rest it uses about 0.1% of the CPU and around 130 MB of memory.
 
-## How it works
+## Privacy
 
-CoolBoost Auto has two parts:
-
-| Part | Where | Runs as | What it does |
-|---|---|---|---|
-| Worker (`CoolBoostSys.ps1`) | `C:\Program Files\CoolBoostAuto` (only admins can change it) | SYSTEM, via scheduled tasks | Switches CoolBoost and applies the plug/unplug rules |
-| Tray icon (`CoolBoostTray.ps1`) | `C:\ProgramData\CoolBoostAuto` | you | The icon and menu, game detection |
-
-**Scheduled tasks**
-- `CoolBoostAuto` runs when the power source changes (Kernel-Power event 105), at startup and after waking from sleep. The tray icon also starts it when it opens and when automation resumes. It does nothing while the automation is paused or CoolBoost Auto is closed.
-- `CoolBoostOn`, `CoolBoostOff` and `CoolBoostToggle` can be started by normal users. That's how the tray icon switches CoolBoost without an admin prompt.
-
-**The CoolBoost call:** the state is read with `APGeAction.GetFunction(0x207)` (it's in byte 1) and set with `APGeAction.SetFunction((state << 16) | 7)`, in the `root\WMI` namespace. This is the same firmware call NitroSense uses. NitroSense's own setting (`HKLM\SOFTWARE\OEM\NitroSense\FanControl\CoolBoostMode`) is kept in sync, so the NitroSense app always shows the right state.
-
-**Files**
-- Settings: `C:\ProgramData\CoolBoostAuto\settings.json`
-- Logs: `C:\Program Files\CoolBoostAuto\CoolBoostAuto.log` (power and manual switching) and `C:\ProgramData\CoolBoostAuto\tray.log` (gaming automation). Both are trimmed automatically.
-
-**Security and privacy**
-- The part that runs as SYSTEM lives in a folder only admins can change.
-- From the settings file, which you can edit, it reads only true/false values and a fixed list of options.
-- No telemetry. Nothing leaves your laptop unless you use **Check for updates** (off until you ask for it). Then the only thing sent is the request for the latest release number, which GitHub sees like any web visit. Nothing is downloaded or installed.
-
-## Building the installer
-
-Releases are built by GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) whenever a `v*` tag is pushed. The workflow checks the PowerShell syntax, compiles [`installer/setup.iss`](installer/setup.iss) with Inno Setup and attaches the setup, a scripts zip and SHA-256 checksums to the release, with notes from [`release-notes/`](release-notes). To build locally: `ISCC.exe /DAppVersion=1.2.3 installer\setup.iss`.
+No telemetry, no account, nothing leaves your laptop. The only exception is the optional update check, which asks GitHub for the latest release number when you turn it on or click it.
 
 ## Code signing policy
 
-The setup is currently **unsigned**. Windows SmartScreen may warn about it and Smart App Control may block it; if that happens, use the scripts zip. Signing through the [SignPath Foundation](https://signpath.org) open-source program has been requested. Once it's approved, every release built by the [release workflow](.github/workflows/release.yml) will be signed, and this section will say so.
+The setup is currently **unsigned**. Signing through the [SignPath Foundation](https://signpath.org) open-source program has been requested; once approved, every release built by the [release workflow](.github/workflows/release.yml) will be signed, and this section will say so.
 
 - Committers and reviewers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
 - Approvers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
 
-**Privacy:** this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The one thing that can reach the network is the optional update check (**Check for updates now**, or **Check for updates automatically**, which is off by default): it asks GitHub for the latest release number and sends nothing else.
+**Privacy:** this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The one thing that can reach the network is the optional update check (**Check for updates now**, or **Check for updates automatically**, off by default): it asks GitHub for the latest release number and sends nothing else.
 
-## Known limitations
+## How it works
 
-- Tested on the AN515-55 and AN515-57 only. Other models may use different firmware calls; the installer refuses to install if the call isn't there.
-- Games are recognised by their executable (see [How games are detected](#how-games-are-detected)).
-- Built on Windows PowerShell, so it uses more memory than a native app would (about 130 MB).
+<details><summary><b>Technical details</b></summary>
+
+| Part | Where | Runs as | Does |
+|---|---|---|---|
+| Worker (`CoolBoostSys.ps1`) | `C:\Program Files\CoolBoostAuto` (admin-only) | SYSTEM, via scheduled tasks | Switches CoolBoost, applies the plug/unplug rules |
+| Tray icon (`CoolBoostTray.ps1`) | `C:\ProgramData\CoolBoostAuto` | you | Icon, menu, game detection |
+
+- **Scheduled tasks:** `CoolBoostAuto` runs on power-source changes (Kernel-Power event 105), at startup and after sleep. `CoolBoostOn`, `CoolBoostOff` and `CoolBoostToggle` can be started by normal users, which is how the icon switches CoolBoost without an admin prompt.
+- **The CoolBoost call:** read with `APGeAction.GetFunction(0x207)` (byte 1) and set with `APGeAction.SetFunction((state << 16) | 7)` in `root\WMI`, the same firmware call NitroSense uses. NitroSense's own setting (`HKLM\SOFTWARE\OEM\NitroSense\FanControl\CoolBoostMode`) is kept in sync.
+- **Files:** settings in `C:\ProgramData\CoolBoostAuto\settings.json`; logs in `C:\Program Files\CoolBoostAuto\CoolBoostAuto.log` (power and manual) and `C:\ProgramData\CoolBoostAuto\tray.log` (gaming), both trimmed automatically.
+- **Security:** the SYSTEM part lives in a folder only admins can change, and reads only true/false values and a fixed list of options from the user-editable settings file.
+- **Building:** GitHub Actions ([`release.yml`](.github/workflows/release.yml)) builds each `v*` tag: it checks the PowerShell syntax, compiles [`installer/setup.iss`](installer/setup.iss) with Inno Setup, and attaches the setup, a scripts zip and SHA-256 checksums, with notes from [`release-notes/`](release-notes). Locally: `ISCC.exe /DAppVersion=1.2.3 installer\setup.iss`.
+- **Limitations:** games are recognised by their executable, so a game started through a launcher counts once the game itself runs. Built on Windows PowerShell, so it uses more memory than a native app (about 130 MB).
+</details>
 
 ## Credits
 
-- The CoolBoost firmware command was identified thanks to **[OpenPredator](https://github.com/KRWCLASSIC/OpenPredator)** by KRWCLASSIC (MIT), an open-source reimplementation of the NitroSense/PredatorSense stack. No code was copied; the call was verified independently on an AN515-55.
+- The CoolBoost firmware command was identified thanks to **[OpenPredator](https://github.com/KRWCLASSIC/OpenPredator)** by KRWCLASSIC (MIT). No code was copied; the call was verified independently on an AN515-55.
 - Thanks to everyone who tested it on their own laptop and reported back.
 - Built by [@edgarmcarvalho](https://github.com/edgarmcarvalho) with help from Claude (Anthropic).
 
