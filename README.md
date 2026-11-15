@@ -27,21 +27,35 @@ On battery, the battery rule always wins: a game never turns CoolBoost on while 
 
 ## Install
 
-1. Download **`CoolBoostAuto-Setup-x.y.z.exe`** from the [latest release](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest).
-2. Run it and accept the admin prompt. It checks your laptop first and installs nothing if it isn't supported.
-3. A red or grey fan appears next to the clock (or under the **^** arrow; drag it onto the taskbar to keep it visible).
+**Easiest, and not blocked by Windows:** copy this line, open **PowerShell** (Start menu → type *PowerShell* → Enter), paste it with a right-click and press Enter:
 
-**Upgrading:** run the newer setup over the old one. Your settings are kept.
+```powershell
+irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1 | iex
+```
+
+It downloads the latest release, checks its SHA-256 checksum, and runs the installer (Windows asks for administrator permission). It checks your laptop first and installs nothing if it isn't supported. Because PowerShell does the download, not the browser, SmartScreen and the other download blocks never come into play. You can read the script first: [get.ps1](https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1).
+
+Afterwards, a red or grey fan appears next to the clock (or under the **^** arrow; drag it onto the taskbar to keep it visible).
+
+**Prefer the setup wizard?** Download **`CoolBoostAuto-Setup-x.y.z.exe`** from the [latest release](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest) and run it. Because it isn't code-signed, Windows may block it (see below); if it does, use the line above.
+
+**Upgrading:** run the same line again (or the newer setup). Your settings are kept.
 
 **Uninstalling:** *Settings → Apps → Installed apps → CoolBoost Auto → Uninstall*. Everything is removed; CoolBoost stays in its current state.
 
-> **Windows warnings:** the installer isn't code-signed yet. SmartScreen may say *Windows protected your PC* (click **More info → Run anyway**). If **Smart App Control** blocks it, use the scripts below.
+> **If Windows blocks the setup .exe or the zip:** they aren't code-signed, so SmartScreen may say *Windows protected your PC* (**More info → Run anyway**), and **Smart App Control** may block them with no way around. That's why the PowerShell line above exists. The files are the same and have published checksums.
 
 <details><summary><b>Install with scripts instead of the wizard</b></summary>
 
-Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release, extract it, then right-click **`install.ps1`** → **Run with PowerShell**.
+Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release. Before extracting, right-click it → **Properties** → tick **Unblock** → OK. Then open PowerShell in the extracted folder and run:
 
-- `-NoAutostart`: don't start with Windows (you can turn it on later from the menu).
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+(Windows' own **Run with PowerShell** menu doesn't work on a default Windows, which forbids running script files; the line above allows it for this one run.)
+
+- `-NoAutostart` (add it after `install.ps1`): don't start with Windows (you can turn it on later from the menu).
 - To remove: run **`uninstall.ps1`** (add `-KeepSettings` to keep your settings).
 </details>
 
@@ -118,12 +132,9 @@ No telemetry, no account, nothing leaves your laptop. The only exception is the 
 
 ## Code signing policy
 
-The setup is currently **unsigned**. Signing through the [SignPath Foundation](https://signpath.org) open-source program has been requested; once approved, every release built by the [release workflow](.github/workflows/release.yml) will be signed, and this section will say so.
+The setup and the scripts are currently **unsigned**: a code-signing certificate for an independent open-source project needs either money or proof of public adoption. The [SignPath Foundation](https://signpath.org) free program declined the application for now, because the project doesn't yet have enough public visibility, and it can be reapplied for later. Until then, install with the **PowerShell line above**, which Windows doesn't block, and check the SHA-256 checksums published with each release.
 
-- Committers and reviewers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
-- Approvers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
-
-**Privacy:** this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The one thing that can reach the network is the optional update check (**Check for updates now**, or **Check for updates automatically**, off by default): it asks GitHub for the latest release number and sends nothing else.
+The release workflow already has the signing steps prepared, so every release can be signed once a certificate exists.
 
 ## How it works
 

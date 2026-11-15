@@ -27,21 +27,35 @@ Na bateria, a regra da bateria sempre vence: um jogo nunca liga o CoolBoost com 
 
 ## Instalação
 
-1. Baixe o **`CoolBoostAuto-Setup-x.y.z.exe`** da [versão mais recente](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest).
-2. Execute e aceite o pedido de administrador. Ele verifica o notebook primeiro e não instala nada se o modelo não for compatível.
-3. Uma ventoinha vermelha ou cinza aparece ao lado do relógio (ou na setinha **^**; arraste-a para a barra de tarefas para deixá-la sempre visível).
+**O jeito mais fácil, e que o Windows não bloqueia:** copie esta linha, abra o **PowerShell** (menu Iniciar → digite *PowerShell* → Enter), cole com o botão direito e aperte Enter:
 
-**Atualizar:** rode o instalador da versão nova por cima da antiga. Suas configurações são mantidas.
+```powershell
+irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1 | iex
+```
+
+Ele baixa a versão mais recente, confere o checksum SHA-256 e executa o instalador (o Windows pede permissão de administrador). Ele verifica o notebook primeiro e não instala nada se o modelo não for compatível. Como quem baixa é o PowerShell, e não o navegador, o SmartScreen e os outros bloqueios de download não entram em cena. Você pode ler o script antes: [`get.ps1`](https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1).
+
+Depois, uma ventoinha vermelha ou cinza aparece ao lado do relógio (ou na setinha **^**; arraste-a para a barra de tarefas para deixá-la sempre visível).
+
+**Prefere o assistente de instalação?** Baixe o **`CoolBoostAuto-Setup-x.y.z.exe`** da [versão mais recente](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest) e execute. Como ele não tem assinatura digital, o Windows pode bloqueá-lo (veja abaixo); se bloquear, use a linha acima.
+
+**Atualizar:** rode a mesma linha de novo (ou o instalador da versão nova). Suas configurações são mantidas.
 
 **Desinstalar:** *Configurações → Aplicativos → Aplicativos instalados → CoolBoost Auto → Desinstalar*. Tudo é removido; o CoolBoost fica no estado em que estiver.
 
-> **Avisos do Windows:** o instalador ainda não tem assinatura digital. O SmartScreen pode mostrar *O Windows protegeu o computador* (clique em **Mais informações → Executar assim mesmo**). Se o **Controle Inteligente de Aplicativos** (Smart App Control) bloquear, use os scripts abaixo.
+> **Se o Windows bloquear o instalador .exe ou o zip:** eles não têm assinatura digital, então o SmartScreen pode mostrar *O Windows protegeu o computador* (**Mais informações → Executar assim mesmo**), e o **Controle Inteligente de Aplicativos** (Smart App Control) pode bloqueá-los sem saída. Por isso existe a linha do PowerShell acima. Os arquivos são os mesmos e têm checksums publicados.
 
 <details><summary><b>Instalar com scripts em vez do assistente</b></summary>
 
-Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da versão, extraia e clique com o botão direito em **`install.ps1`** → **Executar com o PowerShell**.
+Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da versão. Antes de extrair, clique com o botão direito → **Propriedades** → marque **Desbloquear** → OK. Depois abra o PowerShell na pasta extraída e rode:
 
-- `-NoAutostart`: não iniciar com o Windows (dá para ligar depois pelo menu).
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+(O menu **Executar com o PowerShell** do próprio Windows não funciona num Windows padrão, que proíbe rodar arquivos de script; a linha acima libera isso só para esta execução.)
+
+- `-NoAutostart` (depois de `install.ps1`): não iniciar com o Windows (dá para ligar depois pelo menu).
 - Para remover: rode o **`uninstall.ps1`** (com `-KeepSettings`, suas configurações ficam guardadas).
 </details>
 
@@ -118,12 +132,9 @@ Sem telemetria, sem conta, nada sai do seu notebook. A única exceção é a ver
 
 ## Política de assinatura de código
 
-O instalador ainda **não é assinado**. A assinatura pelo programa open source da [SignPath Foundation](https://signpath.org) foi solicitada; quando for aprovada, todas as versões geradas pelo [workflow de release](.github/workflows/release.yml) serão assinadas, e esta seção será atualizada.
+O instalador e os scripts estão **sem assinatura**: um certificado de assinatura de código para um projeto open source independente exige dinheiro ou prova de adoção pública. O programa gratuito da [SignPath Foundation](https://signpath.org) recusou o pedido por enquanto, porque o projeto ainda não tem visibilidade pública suficiente, e dá para pedir de novo mais tarde. Até lá, instale pela **linha do PowerShell acima**, que o Windows não bloqueia, e confira os checksums SHA-256 publicados em cada versão.
 
-- Commits e revisão: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
-- Aprovação: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
-
-**Privacidade:** este programa não envia nenhuma informação para outros sistemas em rede, a menos que o usuário ou quem o instala ou opera peça isso. A única coisa que pode usar a rede é a verificação opcional de atualizações (**Check for updates now** ou **Check for updates automatically**, desligada por padrão): ela pergunta ao GitHub o número da versão mais recente e não envia mais nada.
+O workflow de release já tem os passos de assinatura prontos, então toda versão poderá ser assinada quando houver um certificado.
 
 ## Como funciona
 

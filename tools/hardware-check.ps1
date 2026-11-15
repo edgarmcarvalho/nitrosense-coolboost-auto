@@ -25,8 +25,12 @@ param([string]$Step, [switch]$NoPause)
 # ---------- run as admin (the Acer firmware interface needs it) ----------
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-  $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
-  if ($Step) { $a += '-Step', "`"$Step`"" }; if ($NoPause) { $a += '-NoPause' }
+  if ($PSCommandPath) {
+    $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    if ($Step) { $a += '-Step', "`"$Step`"" }; if ($NoPause) { $a += '-NoPause' }
+  } else {   # started with:  irm <url> | iex   (there is no file to run again, so fetch it again)
+    $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 'irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/tools/hardware-check.ps1 | iex')
+  }
   Start-Process powershell.exe -Verb RunAs -ArgumentList $a
   return
 }
