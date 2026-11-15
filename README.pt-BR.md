@@ -85,7 +85,7 @@ Sempre que o CoolBoost troca, um pequeno aviso aparece acima da barra de tarefas
 - **Games** ▸ os jogos detectados agora, **Add a running app** (tratar um app aberto como jogo), **Ignore a game** (ignorar algo detectado por engano) e **Ignored apps** (clique em um para voltar a considerá-lo).
 - **Pause automation**: nada muda sozinho até você desmarcar. O clique no ícone continua funcionando.
 - **Start with Windows** (iniciar com o Windows) · **On-screen notice** (aviso na tela).
-- **Check for updates automatically** (desligado por padrão) · **Check for updates now**: pergunta ao GitHub o número da versão mais recente e avisa se houver uma nova. Nunca baixa nem instala nada.
+- **Check for updates automatically** (desligado por padrão) · **Check for updates now**: pergunta ao GitHub o número da versão mais recente e avisa se houver uma nova. Nada é baixado nem instalado a menos que você clique na atualização; aí abre uma janela que executa o mesmo instalador em PowerShell mostrado acima, fica aberta e espera você apertar Enter.
 - **Open NitroSense** · **Open log**.
 - **Exit (stops all automation)**: fecha o ícone e para todas as regras até você abrir o CoolBoost Auto de novo pelo menu Iniciar.
 </details>

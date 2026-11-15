@@ -46,11 +46,12 @@ try {
   Get-ChildItem (Split-Path $inst.FullName) -Recurse -File | Unblock-File -ErrorAction SilentlyContinue
 
   Write-Host '==> Installing' -ForegroundColor Cyan
-  Write-Host '    Windows will ask for administrator permission. A second window then does the install and closes by itself;' -ForegroundColor Gray
-  Write-Host '    the result will be shown here.' -ForegroundColor Gray
+  Write-Host '    Windows will ask for administrator permission. A second window then opens and shows the install;' -ForegroundColor Gray
+  Write-Host '    when it finishes, read the result there and press Enter to close that window.' -ForegroundColor Gray
   $ilog = Join-Path $tmp 'install.log'
-  $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$($inst.FullName)`"", '-Quiet', '-LogPath', "`"$ilog`"")
+  $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$($inst.FullName)`"", '-LogPath', "`"$ilog`"")
   if ($NoAutostart) { $a += '-NoAutostart' }
+  if ($Quiet) { $a += '-Quiet' }
   try { $pr = Start-Process powershell.exe -Verb RunAs -ArgumentList $a -Wait -PassThru }
   catch { return (Fail 'Administrator permission was not given, so nothing was installed.') }
   if ($pr.ExitCode -eq 0) { Write-Host "`nDone. Look for the fan icon next to the clock (it may be under the ^ arrow)." -ForegroundColor Green }
