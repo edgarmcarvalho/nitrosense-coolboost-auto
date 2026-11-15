@@ -1,0 +1,66 @@
+name: Compatibility report
+description: Tell us whether CoolBoost Auto works on your laptop model
+title: "[Compatibility] <your model>: "
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing! Every model that gets reported works better for the next person, and confirmed models go into the compatibility table in the README.
+
+        **Two minutes, and nothing on your laptop is changed:**
+        1. Download [`tools/hardware-check.ps1`](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/blob/main/tools/hardware-check.ps1) (open it and use the download button). It is **read-only**: it only reads the CoolBoost and fan status and never changes a setting.
+        2. With CoolBoost **off** and the fans on **Auto** in NitroSense / PredatorSense, right-click the file, choose **Run with PowerShell**, accept the admin prompt and type `1-off` when asked.
+        3. The result is copied to your clipboard. Paste it in the box below.
+
+        It does not collect your name, user name, serial number or anything personal.
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model
+      description: As printed on the laptop or shown in Settings > System > About.
+      placeholder: Acer Nitro 5 AN515-58
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: What happened?
+      options:
+        - Works - installed, and CoolBoost switches by itself
+        - The installer stopped (CoolBoost interface or NitroSense not found)
+        - Installed, but CoolBoost doesn't switch, or switches wrongly
+        - I only ran the hardware check (did not install)
+        - Something else (describe below)
+    validations:
+      required: true
+  - type: input
+    id: apps
+    attributes:
+      label: NitroSense or PredatorSense version
+      description: Shown in the Acer app's settings or About page. Optional.
+      placeholder: NitroSense 3.01
+  - type: input
+    id: version
+    attributes:
+      label: CoolBoost Auto version
+      description: It is the first line when you right-click the tray icon. Leave empty if you did not install it.
+      placeholder: 0.9.5
+  - type: textarea
+    id: check
+    attributes:
+      label: Hardware check result
+      description: Paste the text from hardware-check.ps1 (it is on your clipboard). Please include it if you can; it is what lets a model be added with confidence.
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: Errors, what you expected, what you saw.
+  - type: checkboxes
+    id: public
+    attributes:
+      label: Before you send
+      options:
+        - label: I understand this report is public, and I have read what I pasted above.
+          required: true

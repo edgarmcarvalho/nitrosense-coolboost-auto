@@ -121,7 +121,7 @@ foreach ($f in Get-ChildItem $PD -File) {
 # settings + tray log must stay writable by the user running the tray icon
 $settings = Join-Path $PD 'settings.json'
 if (-not (Test-Path $settings)) {
-  '{"offOnBattery":true,"onPlugIn":"restore","gameMode":true,"paused":false,"startWithWindows":true,"osd":true,"gamesInclude":[],"gamesExclude":[]}' | Set-Content $settings -Encoding UTF8
+  '{"offOnBattery":true,"onPlugIn":"restore","gameMode":true,"paused":false,"startWithWindows":true,"osd":true,"updateCheck":false,"gamesInclude":[],"gamesExclude":[]}' | Set-Content $settings -Encoding UTF8
 }
 # new settings: keep the user's choices on upgrade; -NoAutostart turns "Start with Windows" off
 $cfgObj = Get-Content $settings -Raw | ConvertFrom-Json
@@ -129,8 +129,9 @@ if ($NoAutostart) { $cfgObj | Add-Member -NotePropertyName startWithWindows -Not
 elseif ($null -eq $cfgObj.startWithWindows) { $cfgObj | Add-Member -NotePropertyName startWithWindows -NotePropertyValue $true -Force }
 if ($null -eq $cfgObj.paused) { $cfgObj | Add-Member -NotePropertyName paused -NotePropertyValue $false -Force }
 if ($null -eq $cfgObj.osd) { $cfgObj | Add-Member -NotePropertyName osd -NotePropertyValue $true -Force }
+if ($null -eq $cfgObj.updateCheck) { $cfgObj | Add-Member -NotePropertyName updateCheck -NotePropertyValue $false -Force }
 $cfgObj | ConvertTo-Json -Compress | Set-Content $settings -Encoding UTF8
-foreach ($w in $settings, (Join-Path $PD 'tray.log')) {
+foreach ($w in $settings, (Join-Path $PD 'tray.log'), (Join-Path $PD 'update.json')) {
   if (-not (Test-Path $w)) { New-Item -ItemType File -Path $w | Out-Null }
   $fa = Get-Acl $w; $fa.AddAccessRule((Rule $sidUsers 'Modify' ([Security.AccessControl.InheritanceFlags]::None))); Set-Acl $w $fa
 }

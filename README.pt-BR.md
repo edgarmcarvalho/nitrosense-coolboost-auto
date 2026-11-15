@@ -63,6 +63,8 @@ O menu é em inglês. O que cada item faz:
 - **Pause automation**: pausa toda a troca automática até você desmarcar. O clique no ícone continua funcionando.
 - **Start with Windows**: iniciar o CoolBoost Auto ao entrar no Windows.
 - **On-screen notice**: mostrar o aviso acima da barra de tarefas quando o CoolBoost troca (ligado por padrão).
+- **Check for updates automatically**: uma vez por dia, pergunta ao GitHub qual é o número da versão mais recente e avisa se houver uma nova. Desligado por padrão.
+- **Check for updates now**: a mesma verificação, uma vez, quando você clica. Ela só avisa; nunca baixa nem instala nada. Quando há versão nova, aparece **Version x.y.z is available** no topo do menu, que abre a página de download.
 - **Open NitroSense** · **Open log** (troca por energia e manual, ou automação de jogos).
 - **Exit (stops all automation)**: fecha o ícone e desliga todas as regras até você abrir o CoolBoost Auto de novo pelo menu Iniciar. O CoolBoost fica como está.
 
@@ -82,11 +84,11 @@ Jogos novos são reconhecidos sozinhos, sem lista para manter. Launchers, desins
 |---|---|
 | **Testado em** | Acer Nitro 5 **AN515-55** (Windows 11, NitroSense 3.01) · Acer Nitro 5 **AN515-57** (funcionando segundo um usuário) |
 | **Provavelmente funciona em** | Outros Acer Nitro com NitroSense cujo firmware tenha a interface WMI `APGeAction` |
-| **Ainda não suportado** | Notebooks Predator com PredatorSense (ajuda para testar é bem-vinda) |
+| **Ainda não suportado** | Notebooks Predator com PredatorSense (ajuda para testar é bem-vinda: rode a verificação somente de leitura e [envie um relato](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues/new?template=compatibility-report.yml)) |
 | **Não suportado** | Acer Predator Triton 300 **PT315-53**: a Acer não oferece CoolBoost neste modelo (verificado por um usuário) |
 | **Requer** | NitroSense instalado (não precisa estar aberto), Windows 10 ou 11 (64 bits), conta de administrador para instalar |
 
-O instalador verifica a interface do CoolBoost e o NitroSense, não o nome do modelo. Se faltar algum dos dois, ele para sem alterar nada. Testou em outro modelo? [Abra uma issue](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues) contando se funcionou, para ele entrar nesta lista.
+O instalador verifica a interface do CoolBoost e o NitroSense, não o nome do modelo. Se faltar algum dos dois, ele para sem alterar nada. Testou em outro modelo? [Envie um relato de compatibilidade](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues/new?template=compatibility-report.yml) contando se funcionou, para ele entrar nesta lista. O formulário inclui uma verificação somente de leitura ([	ools/hardware-check.ps1](tools/hardware-check.ps1)) que apenas lê o estado do CoolBoost e dos ventiladores e nunca altera nenhuma configuração, então é seguro rodá-la mesmo sem instalar nada.
 
 ## Instalação
 
@@ -144,7 +146,7 @@ O CoolBoost Auto tem duas partes:
 **Segurança e privacidade**
 - A parte que roda como SYSTEM fica numa pasta que só administradores podem alterar.
 - Do arquivo de configurações, que você pode editar, ela só lê valores verdadeiro/falso e uma lista fixa de opções.
-- Sem acesso à internet e sem telemetria. Tudo fica no seu notebook.
+- Sem telemetria. Nada sai do seu notebook, a menos que você use **Check for updates** (desligado até você pedir). Nesse caso, a única coisa enviada é o pedido do número da versão mais recente, que o GitHub vê como qualquer visita a um site. Nada é baixado nem instalado.
 
 ## Como o instalador é gerado
 
@@ -157,7 +159,7 @@ O instalador ainda **não é assinado**. O SmartScreen do Windows pode avisar e 
 - Commits e revisão: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
 - Aprovação: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
 
-**Privacidade:** este programa não envia nenhuma informação para outros sistemas em rede. Ele funciona totalmente offline.
+**Privacidade:** este programa não envia nenhuma informação para outros sistemas em rede, a menos que o usuário ou quem o instala ou opera peça isso. A única coisa que pode usar a rede é a verificação opcional de atualizações (**Check for updates now** ou **Check for updates automatically**, desligada por padrão): ela pergunta ao GitHub o número da versão mais recente e não envia mais nada.
 
 ## Limitações conhecidas
 

@@ -61,6 +61,8 @@ When CoolBoost Auto made the switch, the second line says why: *unplugged*, *plu
 - **Pause automation**: stops all automatic switching until you untick it. Clicking the icon still works.
 - **Start with Windows**: start CoolBoost Auto when you sign in.
 - **On-screen notice**: show the notice above the taskbar when CoolBoost switches (on by default).
+- **Check for updates automatically**: once a day, asks GitHub for the latest version number and tells you if there is a newer one. Off by default.
+- **Check for updates now**: the same check, once, when you click. It only tells you; it never downloads or installs anything. When there is a newer version, a **Version x.y.z is available** line appears at the top of the menu and opens the download page.
 - **Open NitroSense** · **Open log** (power and manual switching, or gaming automation).
 - **Exit (stops all automation)**: closes the icon and turns off every rule until you start CoolBoost Auto again from the Start menu. CoolBoost stays as it is.
 
@@ -80,11 +82,11 @@ New games are picked up automatically, with no list to maintain. Launchers, unin
 |---|---|
 | **Tested on** | Acer Nitro 5 **AN515-55** (Windows 11, NitroSense 3.01) · Acer Nitro 5 **AN515-57** (reported working by a user) |
 | **Likely works on** | Other Acer Nitro models with NitroSense whose firmware has the `APGeAction` WMI interface |
-| **Not supported yet** | Predator laptops with PredatorSense (help testing is welcome) |
+| **Not supported yet** | Predator laptops with PredatorSense (help testing is welcome: run the read-only check and [send a report](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues/new?template=compatibility-report.yml)) |
 | **Not supported** | Acer Predator Triton 300 **PT315-53**: Acer doesn't offer CoolBoost on this model (checked by a user) |
 | **Requires** | NitroSense installed (it doesn't need to be open), Windows 10 or 11 (64-bit), an admin account to install |
 
-The installer checks for the CoolBoost interface and for NitroSense, not for a model name. If either is missing, it stops without changing anything. Tried it on another model? Please [open an issue](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues) saying whether it worked, so it can be added here.
+The installer checks for the CoolBoost interface and for NitroSense, not for a model name. If either is missing, it stops without changing anything. Tried it on another model? Please [send a compatibility report](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues/new?template=compatibility-report.yml) saying whether it worked, so it can be added here. The report form includes a read-only hardware check ([	ools/hardware-check.ps1](tools/hardware-check.ps1)) that only reads the CoolBoost and fan status and never changes a setting, so it is safe to run even if you don't install anything.
 
 ## Install
 
@@ -142,7 +144,7 @@ CoolBoost Auto has two parts:
 **Security and privacy**
 - The part that runs as SYSTEM lives in a folder only admins can change.
 - From the settings file, which you can edit, it reads only true/false values and a fixed list of options.
-- No network access, no telemetry. Everything stays on your laptop.
+- No telemetry. Nothing leaves your laptop unless you use **Check for updates** (off until you ask for it). Then the only thing sent is the request for the latest release number, which GitHub sees like any web visit. Nothing is downloaded or installed.
 
 ## Building the installer
 
@@ -155,7 +157,7 @@ The setup is currently **unsigned**. Windows SmartScreen may warn about it and S
 - Committers and reviewers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
 - Approvers: [@edgarmcarvalho](https://github.com/edgarmcarvalho)
 
-**Privacy:** this program does not transfer any information to other networked systems. It works entirely offline.
+**Privacy:** this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The one thing that can reach the network is the optional update check (**Check for updates now**, or **Check for updates automatically**, which is off by default): it asks GitHub for the latest release number and sends nothing else.
 
 ## Known limitations
 

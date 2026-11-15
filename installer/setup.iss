@@ -8,6 +8,9 @@
 #ifndef AppVersion
   #define AppVersion "0.0.0-dev"
 #endif
+#ifndef FileVersion
+  #define FileVersion "0.0.0.0"
+#endif
 #define AppName "CoolBoost Auto"
 #define RepoUrl "https://github.com/edgarmcarvalho/nitrosense-coolboost-auto"
 
@@ -20,6 +23,12 @@ AppPublisher=edgarmcarvalho
 AppPublisherURL={#RepoUrl}
 AppSupportURL={#RepoUrl}/issues
 AppUpdatesURL={#RepoUrl}/releases
+; product name and version stamped into the setup .exe (required by code signing; see the signing steps in release.yml)
+VersionInfoVersion={#FileVersion}
+VersionInfoProductName={#AppName}
+VersionInfoProductVersion={#AppVersion}
+VersionInfoCompany=edgarmcarvalho
+VersionInfoDescription={#AppName} setup
 DefaultDirName={autopf}\CoolBoost Auto
 DisableDirPage=yes
 DisableProgramGroupPage=yes

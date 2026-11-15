@@ -13,7 +13,7 @@ $savedPath = "$env:ProgramFiles\CoolBoostAuto\saved_state.txt"
 # read straight through .NET: ~35x faster than Get-ItemProperty, and this runs several times a second
 function Get-CB { try { $v=[Microsoft.Win32.Registry]::GetValue('HKEY_LOCAL_MACHINE\SOFTWARE\OEM\NitroSense\FanControl','CoolBoostMode',$null); if ($null -eq $v) { -1 } else { [int]$v } } catch { -1 } }
 function Get-Cfg {
-  $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; paused=$false; startWithWindows=$true; osd=$true; gamesInclude=@(); gamesExclude=@()}
+  $c=[ordered]@{offOnBattery=$true; onPlugIn='restore'; gameMode=$true; paused=$false; startWithWindows=$true; osd=$true; updateCheck=$false; gamesInclude=@(); gamesExclude=@()}
   $script:cfgReadOk=$false
   try {
     $j=Get-Content $cfgPath -Raw -EA Stop | ConvertFrom-Json -EA Stop
@@ -25,6 +25,7 @@ function Get-Cfg {
     if ($j.paused -is [bool]) { $c.paused=$j.paused }
     if ($j.startWithWindows -is [bool]) { $c.startWithWindows=$j.startWithWindows }
     if ($j.osd -is [bool]) { $c.osd=$j.osd }
+    if ($j.updateCheck -is [bool]) { $c.updateCheck=$j.updateCheck }
     if ($j.gamesInclude) { $c.gamesInclude=@($j.gamesInclude | % { [string]$_ }) }
     if ($j.gamesExclude) { $c.gamesExclude=@($j.gamesExclude | % { [string]$_ }) }
   } catch {}
@@ -69,6 +70,20 @@ function Refresh-Sources {
       $r += $libs | Select -Unique | % { (Join-Path $_ 'steamapps\common\').ToLower() }
     } catch {}
     foreach($rk in "$env:ProgramFiles\Rockstar Games\","${env:ProgramFiles(x86)}\Rockstar Games\"){ if(Test-Path $rk){ $r += $rk.ToLower() } }
+    # Epic Games Store: the launcher keeps one manifest per installed game, with the folder it was installed to (any drive)
+    try {
+      $md = "$env:ProgramData\Epic\EpicGamesLauncher\Data\Manifests"
+      if (Test-Path $md) {
+        foreach ($m in (Get-ChildItem $md -Filter *.item -EA SilentlyContinue)) {
+          try {
+            $j = Get-Content $m.FullName -Raw -EA Stop | ConvertFrom-Json -EA Stop
+            if (-not $j.InstallLocation) { continue }
+            if ($j.AppCategories -and ('games' -notin @($j.AppCategories | % { "$_".ToLower() }))) { continue }   # Unreal Engine, tools and the like are not games
+            $r += ($j.InstallLocation.TrimEnd('\') + '\').ToLower()
+          } catch {}
+        }
+      }
+    } catch {}
     $script:roots=$r; $script:rootsAt=$now
   }
 }
@@ -267,12 +282,17 @@ $miPause = New-MenuItem 'Pause automation' { $p = -not $script:cfg.paused; Set-C
 $miStart = New-MenuItem 'Start with Windows' { Set-Cfg 'startWithWindows' (-not $script:cfg.startWithWindows) }
 $miOsd = New-MenuItem 'On-screen notice' { Set-Cfg 'osd' (-not $script:cfg.osd) }
 $miOsd.ToolTipText = 'Show a notice above the taskbar when CoolBoost turns on or off'
+$miUpdAuto = New-MenuItem 'Check for updates automatically' { Set-Cfg 'updateCheck' (-not $script:cfg.updateCheck); if ($script:cfg.updateCheck) { $script:updNext = (Get-Date).AddSeconds(5) } }
+$miUpdAuto.ToolTipText = 'Off by default. Once a day, asks GitHub for the latest version number and tells you if there is a newer one. Never downloads or installs anything.'
+$miUpdNow = New-MenuItem 'Check for updates now' { Start-UpdateCheck $true }
+$miUpdNow.ToolTipText = 'Asks GitHub for the latest version number, once, now.'
+$miUpdate = New-MenuItem 'Update available' { Open-UpdatePage }; Set-Bold $miUpdate; $miUpdate.Visible = $false
 $miOpenNS = New-MenuItem 'Open NitroSense' { Open-NitroSense }
 $miLogs = New-MenuItem 'Open log' $null
 [void]$miLogs.DropDownItems.Add((New-MenuItem 'Power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
 [void]$miLogs.DropDownItems.Add((New-MenuItem 'Gaming automation' { $p = "$env:ProgramData\CoolBoostAuto\tray.log"; if (-not (Test-Path $p)) { New-Item $p -ItemType File -Force | Out-Null }; Start-Process notepad $p }))
 $miExit = New-MenuItem 'Exit (stops all automation)' { TLog 'Exited - all automation stopped'; $ni.Visible=$false; [Windows.Forms.Application]::Exit() }
-$menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miStart, $miOsd, $miOpenNS, $miLogs, (New-Sep), $miExit))
+$menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miUpdate, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miStart, $miOsd, $miUpdAuto, $miUpdNow, $miOpenNS, $miLogs, (New-Sep), $miExit))
 
 $skipProc='(?i)^(explorer|applicationframehost|textinputhost|systemsettings|shellexperiencehost|startmenuexperiencehost|searchhost|lockapp|powershell|pwsh|conhost|windowsterminal|nitrosense|predatorsense)$'
 function Fill-List($parent, $items, $emptyText) {
@@ -291,6 +311,9 @@ $menu.add_Opening({
   $miPause.Checked = $c.paused
   $miStart.Checked = $c.startWithWindows
   $miOsd.Checked = $c.osd
+  $miUpdAuto.Checked = $c.updateCheck
+  $miUpdate.Visible = [bool]$script:updNew
+  if ($script:updNew) { $miUpdate.Text = "Version $($script:updNew) is available - open the download page" }
   # Games > Detected now
   $miDetected.Text = if ($script:gs.active) { 'Detected now: ' + ((@($script:gs.paths) | % { Get-Name $_ } | Select -Unique) -join ', ') } else { 'No game running' }
   # Games > Add a running app: open windows that aren't games yet
@@ -447,6 +470,85 @@ function Check-Osd {
   if ($prev -in 0,1 -and $script:cfg.osd) { try { Show-Osd $cb (Get-OsdReason) } catch { TLog "On-screen notice failed: $_" } }
 }
 
+# ---------- update check (tells you, never installs) ----------
+# Contacts GitHub only when you click "Check for updates now" or have ticked "Check for updates automatically" (off by default).
+# It asks for the latest release number and compares it with this one. Nothing is downloaded or installed, and the page it
+# opens is always the fixed address below, never one taken from the reply.
+$script:updUrl  = 'https://api.github.com/repos/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest'
+$script:updPage = 'https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest'
+$script:updFile = "$env:ProgramData\CoolBoostAuto\update.json"
+$script:updHttp = $null; $script:updTask = $null; $script:updManual = $false; $script:updClick = $false
+$script:updNew = ''; $script:updNotified = ''; $script:updNext = [datetime]::MaxValue
+$script:updQuiet = (Get-Date).AddSeconds(20)   # no announcements right after start: the first game scan hasn't run yet
+function Parse-Ver($s) { $m = [regex]::Match("$s", '^v?(\d+)\.(\d+)\.(\d+)$'); if ($m.Success) { [version]"$($m.Groups[1].Value).$($m.Groups[2].Value).$($m.Groups[3].Value)" } }
+$script:curVer = Parse-Ver $appVersion   # null for a development build
+function Save-Upd([string]$latest) {
+  try { ConvertTo-Json -Compress -InputObject ([ordered]@{ checked = (Get-Date).ToString('o'); latest = $latest; notified = $script:updNotified }) | Set-Content $script:updFile -Encoding UTF8 } catch {}
+}
+function Load-Upd {
+  $checked = [datetime]::MinValue
+  try {
+    $j = Get-Content $script:updFile -Raw -EA Stop | ConvertFrom-Json -EA Stop
+    $v = Parse-Ver $j.latest
+    if ($v -and $script:curVer -and $v -gt $script:curVer) { $script:updNew = "$v"; $script:updNotified = [string]$j.notified }
+    $checked = [datetime]::Parse([string]$j.checked, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind)
+  } catch {}
+  if ($script:cfg.updateCheck) { $due = $checked.AddHours(24); $soon = (Get-Date).AddSeconds(90); $script:updNext = if ($due -gt $soon) { $due } else { $soon } }
+}
+function Open-UpdatePage { try { Start-Process $script:updPage } catch { TLog "Could not open the download page: $_" } }
+function Upd-Say([string]$text, [bool]$opensPage) { $script:updClick = $opensPage; try { $ni.ShowBalloonTip(10000, 'CoolBoost Auto', $text, [Windows.Forms.ToolTipIcon]::Info) } catch {} }
+function Upd-Announce { $script:updNotified = $script:updNew; TLog "Update notice: version $($script:updNew) is available"; Upd-Say "Version $($script:updNew) is available (you have $appVersion). Click here to open the download page." $true; Save-Upd $script:updNew }
+function Upd-Failed([string]$why) {
+  TLog "Update check failed: $why"
+  $script:updNext = (Get-Date).AddHours(6)
+  if ($script:updManual) { Upd-Say "Couldn't reach GitHub just now. Try again later." $false }
+}
+function Start-UpdateCheck([bool]$manual) {
+  if ($script:updTask) { return }
+  $script:updManual = $manual
+  if (-not $script:curVer) { if ($manual) { Upd-Say 'This is a development build, so there is no version to compare.' $false }; return }
+  try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    if (-not $script:updHttp) {
+      Add-Type -AssemblyName System.Net.Http
+      $h = New-Object System.Net.Http.HttpClient
+      $h.Timeout = [TimeSpan]::FromSeconds(20)
+      [void]$h.DefaultRequestHeaders.UserAgent.ParseAdd("CoolBoostAuto/$appVersion")
+      [void]$h.DefaultRequestHeaders.Accept.ParseAdd('application/vnd.github+json')
+      $script:updHttp = $h
+    }
+    $script:updTask = $script:updHttp.GetStringAsync($script:updUrl)   # runs in the background; the timer picks up the result
+  } catch { Upd-Failed "$_" }
+}
+# called on every timer tick: cheap unless a check is due or has just finished
+function Check-Update {
+  if ($script:updTask) {
+    $t = $script:updTask
+    if (-not $t.IsCompleted) { return }
+    $script:updTask = $null
+    if ($t.IsFaulted -or $t.IsCanceled) { Upd-Failed 'no answer'; return }
+    try {
+      $tag = ($t.Result | ConvertFrom-Json).tag_name
+      $v = Parse-Ver $tag
+      if (-not $v) { throw "unexpected release tag '$tag'" }
+      $script:updNew = if ($v -gt $script:curVer) { "$v" } else { '' }
+      $script:updNext = (Get-Date).AddHours(24)
+      Save-Upd "$v"
+      TLog "Update check: latest is $v, installed $appVersion"
+      if ($script:updManual) { if ($script:updNew) { Upd-Announce } else { Upd-Say "You're up to date (version $appVersion)." $false } }
+    } catch { Upd-Failed "$_" }
+    return
+  }
+  if ($script:cfg.updateCheck) {
+    if ($script:updNext -eq [datetime]::MaxValue) { $script:updNext = (Get-Date).AddSeconds(90) }   # switched on by editing the settings file
+    elseif ((Get-Date) -ge $script:updNext) { Start-UpdateCheck $false }
+    # announce a version found earlier once; not while a game is running
+    if ($script:updNew -and $script:updNew -ne $script:updNotified -and -not $script:gs.active -and (Get-Date) -gt $script:updQuiet) { Upd-Announce }
+  }
+}
+$ni.add_BalloonTipClicked({ if ($script:updClick -and $script:updNew) { Open-UpdatePage } })
+Load-Upd
+
 # ---------- loop ----------
 $timer=New-Object Windows.Forms.Timer
 $timer.Interval=500
@@ -458,6 +560,7 @@ $timer.add_Tick({
       return
     }
     Update-Cfg
+    Check-Update
     Game-Tick
     if (-not $script:busy) { Refresh }
   } catch {}
