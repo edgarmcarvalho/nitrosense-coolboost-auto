@@ -73,7 +73,7 @@ O menu é em inglês. O que cada item faz:
 O CoolBoost Auto olha os programas abertos a cada poucos segundos e considera um deles jogo se:
 
 - **o Windows já sabe que é um jogo** (a mesma lista que a Barra de Jogo usa), ou
-- ele está instalado numa das suas **bibliotecas da Steam** ou na pasta **Rockstar Games**, ou
+- ele foi instalado por uma loja de jogos que o app conhece: **Steam** (todas as suas bibliotecas), **Epic Games**, **GOG**, **Ubisoft Connect**, **EA app**, **Battle.net**, o **app Xbox / Game Pass**, **Amazon Games**, **Riot Games**, **itch.io** ou **Rockstar Games**, ou
 - você o adicionou em **Games ▸ Add a running app**.
 
 Jogos novos são reconhecidos sozinhos, sem lista para manter. Launchers, desinstaladores, relatórios de erro, atualizadores e serviços anti-cheat são ignorados. O jogo é identificado pelo executável, então jogos abertos por um launcher são detectados quando o jogo em si começa a rodar. Se algo for detectado por engano, use **Games ▸ Ignore a game**.

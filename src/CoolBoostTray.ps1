@@ -84,6 +84,46 @@ function Refresh-Sources {
         }
       }
     } catch {}
+    # GOG (Galaxy or offline installers): one registry key per installed game, with its folder in 'path'
+    try {
+      foreach ($k in 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games','HKLM:\SOFTWARE\GOG.com\Games') {
+        foreach ($g in (Get-ChildItem $k -EA SilentlyContinue)) {
+          $gp = (Get-ItemProperty $g.PSPath -EA SilentlyContinue).path
+          if ($gp -and (Test-Path -LiteralPath $gp)) { $r += ($gp.TrimEnd('\') + '\').ToLower() }
+        }
+      }
+    } catch {}
+    # Ubisoft Connect: one registry key per installed game ('InstallDir', written with forward slashes)
+    try {
+      foreach ($k in 'HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs','HKLM:\SOFTWARE\Ubisoft\Launcher\Installs') {
+        foreach ($g in (Get-ChildItem $k -EA SilentlyContinue)) {
+          $gp = (Get-ItemProperty $g.PSPath -EA SilentlyContinue).InstallDir
+          if ($gp) { $gp = $gp -replace '/','\'; if (Test-Path -LiteralPath $gp) { $r += ($gp.TrimEnd('\') + '\').ToLower() } }
+        }
+      }
+    } catch {}
+    # Battle.net and EA app games register themselves as installed programs, under their publisher's name
+    try {
+      foreach ($k in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall') {
+        foreach ($g in (Get-ChildItem $k -EA SilentlyContinue)) {
+          $u = Get-ItemProperty $g.PSPath -EA SilentlyContinue
+          if (-not $u.InstallLocation -or -not $u.Publisher) { continue }
+          if ($u.Publisher -notmatch '^(Blizzard Entertainment|Electronic Arts)') { continue }
+          if ($u.DisplayName -match '^(Battle\.net|EA app|EA Desktop|Origin)\b') { continue }   # the launchers themselves
+          if (Test-Path -LiteralPath $u.InstallLocation) { $r += ($u.InstallLocation.TrimEnd('\') + '\').ToLower() }
+        }
+      }
+    } catch {}
+    # Default game folders of the other stores, on every fixed drive (Xbox app / Game Pass, EA app, Amazon Games, Ubisoft, Riot, GOG)
+    try {
+      $sub = 'XboxGames','Amazon Games\Library','EA Games','Program Files\EA Games','Origin Games','Program Files (x86)\Origin Games','GOG Games','GOG Galaxy\Games','Program Files (x86)\GOG Galaxy\Games','Ubisoft\Ubisoft Game Launcher\games','Program Files (x86)\Ubisoft\Ubisoft Game Launcher\games','Riot Games'
+      foreach ($dr in [IO.DriveInfo]::GetDrives()) {
+        if ($dr.DriveType -ne 'Fixed' -or -not $dr.IsReady) { continue }
+        foreach ($s in $sub) { $d = Join-Path $dr.RootDirectory.FullName $s; if (Test-Path -LiteralPath $d) { $r += ($d.TrimEnd('\') + '\').ToLower() } }
+      }
+      $itch = Join-Path $env:APPDATA 'itch\apps'
+      if (Test-Path -LiteralPath $itch) { $r += ($itch + '\').ToLower() }
+    } catch {}
     $script:roots=$r; $script:rootsAt=$now
   }
 }
@@ -95,7 +135,7 @@ function Test-Game([string]$path){
   if ($script:winGames.ContainsKey($p)) { return $true }
   foreach($r in $script:roots){
     if ($p.StartsWith($r)) {
-      if ($p -match '\\rockstar games\\(launcher|social club)\\') { return $false }
+      if ($p -match '\\(rockstar games\\(launcher|social club)|riot games\\riot client)\\') { return $false }
       if ((Split-Path $p -Leaf) -match $helperRx) { return $false }
       return $true
     }

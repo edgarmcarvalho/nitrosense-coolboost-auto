@@ -71,7 +71,7 @@ When CoolBoost Auto made the switch, the second line says why: *unplugged*, *plu
 CoolBoost Auto looks at the running programs every few seconds and treats one as a game if:
 
 - **Windows already knows it's a game** (the same list Game Bar uses), or
-- it's installed in one of your **Steam libraries** or the **Rockstar Games** folder, or
+- it's installed by a game store the app knows: **Steam** (all your libraries), **Epic Games**, **GOG**, **Ubisoft Connect**, **EA app**, **Battle.net**, the **Xbox app / Game Pass**, **Amazon Games**, **Riot Games**, **itch.io** or **Rockstar Games**, or
 - you added it with **Games ▸ Add a running app**.
 
 New games are picked up automatically, with no list to maintain. Launchers, uninstallers, crash reporters, updaters and anti-cheat services are ignored. A game is recognised by its executable, so games started through a launcher are detected once the game itself is running. If something is detected by mistake, use **Games ▸ Ignore a game**.
