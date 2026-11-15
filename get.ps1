@@ -14,6 +14,42 @@ $ProgressPreference = 'SilentlyContinue'
 $repo = 'edgarmcarvalho/nitrosense-coolboost-auto'
 $hdr  = @{ 'User-Agent' = 'CoolBoostAuto-get' }
 
+# Downloads a file and draws a progress bar with the size and the speed on one console line.
+function Get-FileWithProgress($url, $out) {
+  $req = [Net.HttpWebRequest]::Create($url)
+  $req.UserAgent = 'CoolBoostAuto-get'
+  $resp = $req.GetResponse()
+  try {
+    $total = $resp.ContentLength
+    $in = $resp.GetResponseStream()
+    $fs = [IO.File]::Create($out)
+    try {
+      $buf = New-Object byte[] 65536
+      $done = 0L
+      $sw = [Diagnostics.Stopwatch]::StartNew()
+      $last = -1000
+      while (($n = $in.Read($buf, 0, $buf.Length)) -gt 0) {
+        $fs.Write($buf, 0, $n); $done += $n
+        if ($sw.ElapsedMilliseconds - $last -ge 100) { $last = $sw.ElapsedMilliseconds; Show-Bar $done $total $sw.Elapsed.TotalSeconds }
+      }
+      Show-Bar $done $total $sw.Elapsed.TotalSeconds
+      Write-Host ''
+    }
+    finally { $fs.Dispose(); $in.Dispose() }
+  }
+  finally { $resp.Dispose() }
+}
+function Show-Bar($done, $total, $secs) {
+  $speed = if ($secs -gt 0) { $done / $secs } else { 0 }
+  $spd = if ($speed -ge 1MB) { '{0:N2} MB/s' -f ($speed / 1MB) } else { '{0:N0} KB/s' -f ($speed / 1KB) }
+  if ($total -gt 0) {
+    $pct = [Math]::Min(100, [int](100 * $done / $total)); $fill = [int]($pct / 4)
+    $bar = ('#' * $fill) + ('-' * (25 - $fill))
+    $line = '    [{0}] {1,3}%  {2:N2} / {3:N2} MB  {4}' -f $bar, $pct, ($done / 1MB), ($total / 1MB), $spd
+  } else { $line = '    {0:N2} MB  {1}' -f ($done / 1MB), $spd }
+  Write-Host ("`r" + $line.PadRight(78)) -NoNewline
+}
+
 function Fail($m) { Write-Host "`nERROR: $m" -ForegroundColor Red; Write-Host "You can also download the scripts zip by hand: https://github.com/$repo/releases/latest" -ForegroundColor Yellow; return }
 
 Write-Host "`nCoolBoost Auto: download and install`n" -ForegroundColor White
@@ -29,7 +65,7 @@ try {
   New-Item $tmp -ItemType Directory | Out-Null
   $zip = Join-Path $tmp $zipA.name
   Write-Host '==> Downloading' -ForegroundColor Cyan
-  Invoke-WebRequest $zipA.browser_download_url -OutFile $zip -Headers $hdr -UseBasicParsing
+  Get-FileWithProgress $zipA.browser_download_url $zip
   $sumsFile = Join-Path $tmp 'SHA256SUMS.txt'
   Invoke-WebRequest $sumsA.browser_download_url -OutFile $sumsFile -Headers $hdr -UseBasicParsing
   $sums = Get-Content $sumsFile -Raw
