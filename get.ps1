@@ -45,13 +45,19 @@ try {
   if (-not $inst) { return (Fail 'install.ps1 was not found in the download.') }
   Get-ChildItem (Split-Path $inst.FullName) -Recurse -File | Unblock-File -ErrorAction SilentlyContinue
 
-  Write-Host '==> Starting the installer (Windows will ask for administrator permission)' -ForegroundColor Cyan
-  $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$($inst.FullName)`"")
+  Write-Host '==> Installing' -ForegroundColor Cyan
+  Write-Host '    Windows will ask for administrator permission. A second window then does the install and closes by itself;' -ForegroundColor Gray
+  Write-Host '    the result will be shown here.' -ForegroundColor Gray
+  $ilog = Join-Path $tmp 'install.log'
+  $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$($inst.FullName)`"", '-Quiet', '-LogPath', "`"$ilog`"")
   if ($NoAutostart) { $a += '-NoAutostart' }
-  if ($Quiet) { $a += '-Quiet' }
-  $pr = Start-Process powershell.exe -Verb RunAs -ArgumentList $a -Wait -PassThru
+  try { $pr = Start-Process powershell.exe -Verb RunAs -ArgumentList $a -Wait -PassThru }
+  catch { return (Fail 'Administrator permission was not given, so nothing was installed.') }
   if ($pr.ExitCode -eq 0) { Write-Host "`nDone. Look for the fan icon next to the clock (it may be under the ^ arrow)." -ForegroundColor Green }
-  else { Write-Host "`nThe installer stopped (code $($pr.ExitCode)); see its window for the reason. Nothing was installed if the compatibility check failed." -ForegroundColor Yellow }
+  else {
+    Write-Host "`nThe installer stopped (code $($pr.ExitCode)). Nothing was installed if the compatibility check failed. Its last lines:" -ForegroundColor Yellow
+    if (Test-Path $ilog) { Get-Content $ilog -Tail 14 | ForEach-Object { Write-Host "    $_" } }
+  }
 }
 catch { Fail $_.Exception.Message }
 finally { if (-not $KeepFiles) { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue } }

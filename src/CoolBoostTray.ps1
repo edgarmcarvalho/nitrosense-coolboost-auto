@@ -323,10 +323,10 @@ $miStart = New-MenuItem 'Start with Windows' { Set-Cfg 'startWithWindows' (-not 
 $miOsd = New-MenuItem 'On-screen notice' { Set-Cfg 'osd' (-not $script:cfg.osd) }
 $miOsd.ToolTipText = 'Show a notice above the taskbar when CoolBoost turns on or off'
 $miUpdAuto = New-MenuItem 'Check for updates automatically' { Set-Cfg 'updateCheck' (-not $script:cfg.updateCheck); if ($script:cfg.updateCheck) { $script:updNext = (Get-Date).AddSeconds(5) } }
-$miUpdAuto.ToolTipText = 'Off by default. Once a day, asks GitHub for the latest version number and tells you if there is a newer one. Never downloads or installs anything.'
+$miUpdAuto.ToolTipText = 'Off by default. Once a day, asks GitHub for the latest version number and tells you if there is a newer one. Nothing is downloaded or installed unless you click the update.'
 $miUpdNow = New-MenuItem 'Check for updates now' { Start-UpdateCheck $true }
 $miUpdNow.ToolTipText = 'Asks GitHub for the latest version number, once, now.'
-$miUpdate = New-MenuItem 'Update available' { Open-UpdatePage }; Set-Bold $miUpdate; $miUpdate.Visible = $false
+$miUpdate = New-MenuItem 'Update available' { Start-UpdateInstall }; Set-Bold $miUpdate; $miUpdate.Visible = $false
 $miOpenNS = New-MenuItem 'Open NitroSense' { Open-NitroSense }
 $miLogs = New-MenuItem 'Open log' $null
 [void]$miLogs.DropDownItems.Add((New-MenuItem 'Power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
@@ -353,7 +353,7 @@ $menu.add_Opening({
   $miOsd.Checked = $c.osd
   $miUpdAuto.Checked = $c.updateCheck
   $miUpdate.Visible = [bool]$script:updNew
-  if ($script:updNew) { $miUpdate.Text = "Version $($script:updNew) is available - open the download page" }
+  if ($script:updNew) { $miUpdate.Text = "Version $($script:updNew) is available - click to update" }
   # Games > Detected now
   $miDetected.Text = if ($script:gs.active) { 'Detected now: ' + ((@($script:gs.paths) | % { Get-Name $_ } | Select -Unique) -join ', ') } else { 'No game running' }
   # Games > Add a running app: open windows that aren't games yet
@@ -536,8 +536,18 @@ function Load-Upd {
   if ($script:cfg.updateCheck) { $due = $checked.AddHours(24); $soon = (Get-Date).AddSeconds(90); $script:updNext = if ($due -gt $soon) { $due } else { $soon } }
 }
 function Open-UpdatePage { try { Start-Process $script:updPage } catch { TLog "Could not open the download page: $_" } }
+# Updating = the same PowerShell line as installing: PowerShell does the download (no browser, so no SmartScreen block).
+# Only runs when you click the notice or the menu line. The address is fixed here; nothing in GitHub's reply is ever run.
+$script:updScript = 'https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1'
+function Start-UpdateInstall {
+  TLog "Update: opening the installer window (version $($script:updNew))"
+  try {
+    $cmd = "irm '$($script:updScript)' | iex; Write-Host ''; Read-Host 'Press Enter to close this window' | Out-Null"
+    Start-Process powershell.exe -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $cmd
+  } catch { TLog "Could not start the update: $_"; Open-UpdatePage }
+}
 function Upd-Say([string]$text, [bool]$opensPage) { $script:updClick = $opensPage; try { $ni.ShowBalloonTip(10000, 'CoolBoost Auto', $text, [Windows.Forms.ToolTipIcon]::Info) } catch {} }
-function Upd-Announce { $script:updNotified = $script:updNew; TLog "Update notice: version $($script:updNew) is available"; Upd-Say "Version $($script:updNew) is available (you have $appVersion). Click here to open the download page." $true; Save-Upd $script:updNew }
+function Upd-Announce { $script:updNotified = $script:updNew; TLog "Update notice: version $($script:updNew) is available"; Upd-Say "Version $($script:updNew) is available (you have $appVersion). Click here to update." $true; Save-Upd $script:updNew }
 function Upd-Failed([string]$why) {
   TLog "Update check failed: $why"
   $script:updNext = (Get-Date).AddHours(6)
@@ -586,7 +596,7 @@ function Check-Update {
     if ($script:updNew -and $script:updNew -ne $script:updNotified -and -not $script:gs.active -and (Get-Date) -gt $script:updQuiet) { Upd-Announce }
   }
 }
-$ni.add_BalloonTipClicked({ if ($script:updClick -and $script:updNew) { Open-UpdatePage } })
+$ni.add_BalloonTipClicked({ if ($script:updClick -and $script:updNew) { Start-UpdateInstall } })
 Load-Upd
 
 # ---------- loop ----------
