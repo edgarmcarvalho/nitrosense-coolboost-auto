@@ -1,4 +1,4 @@
-﻿# CoolBoost Auto: one-line installer.
+# CoolBoost Auto: one-line installer.
 #
 #   irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1 | iex
 #

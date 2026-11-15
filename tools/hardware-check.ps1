@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
   CoolBoost Auto - READ-ONLY hardware check for Acer Nitro / Predator laptops.
