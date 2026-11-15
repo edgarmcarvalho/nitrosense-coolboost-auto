@@ -9,7 +9,7 @@
 
 **[⬇ Baixar a versão mais recente](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest)** · 🇺🇸 [Read in English](README.md)
 
-![CoolBoost Auto: estados do ícone da bandeja e menu](docs/screenshot.png?v=3)
+![CoolBoost Auto: estados do ícone da bandeja e menu](docs/screenshot.png?v=4)
 
 > Projeto sem vínculo com a Acer e não endossado por ela. *Acer, Nitro, NitroSense e CoolBoost são marcas registradas da Acer Inc.*
 

@@ -45,16 +45,18 @@ $r = [Drawing.Rectangle]::Union($menu.Bounds, $plug.DropDown.Bounds); $r.Inflate
 $cap = New-Object Drawing.Bitmap $r.Width, $r.Height
 $gc = [Drawing.Graphics]::FromImage($cap); $gc.CopyFromScreen($r.Location, [Drawing.Point]::Empty, $r.Size); $gc.Dispose()
 $menuOff = New-Object Drawing.Point(($menu.Bounds.X - $r.X), ($menu.Bounds.Y - $r.Y))
+$mh = $menu.Bounds.Height
 $menu.Close(); $form.Close()
 
 # ---- compose: legend on the left, menu on the right ----
 $W = (Px 330) - $menuOff.X + $cap.Width + (Px 60)
-$H = [Math]::Max((Px 470), (Px 40) - $menuOff.Y + $cap.Height + (Px 20))
+$H = [Math]::Max((Px 470), $cap.Height + (Px 20))
+$menuTop = [int](($H - $mh) / 2)   # the menu is centred vertically next to the legend
 $img = New-Object Drawing.Bitmap $W, $H
 $g = [Drawing.Graphics]::FromImage($img)
 $g.SmoothingMode = 'AntiAlias'; $g.TextRenderingHint = 'ClearTypeGridFit'; $g.InterpolationMode = 'HighQualityBicubic'
 $g.Clear($bg)
-$g.DrawImage($cap, (Px 330) - $menuOff.X, (Px 40) - $menuOff.Y)
+$g.DrawImage($cap, (Px 330) - $menuOff.X, $menuTop - $menuOff.Y)
 $white = [Drawing.Brushes]::White; $grey = New-Object Drawing.SolidBrush ([Drawing.Color]::FromArgb(170, 172, 178))
 $red = New-Object Drawing.SolidBrush ([Drawing.Color]::FromArgb(226, 35, 26))
 $g.DrawString('CoolBoost Auto', (New-Object Drawing.Font('Segoe UI Semibold', [single](Px 30), [Drawing.FontStyle]::Bold, [Drawing.GraphicsUnit]::Pixel)), $white, (Px 34), (Px 38))
