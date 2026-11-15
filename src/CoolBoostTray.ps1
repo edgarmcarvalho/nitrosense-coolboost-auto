@@ -191,6 +191,7 @@ function Run-Task($name, [int]$expect, [string]$reason=''){
   $script:busy=$true; $script:expect=$expect; $script:osdReason=$reason; $script:cmdAt=Get-Date
   Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList "/run /tn $name"
   $script:until=(Get-Date).AddSeconds(4); $script:ourCmdUntil=(Get-Date).AddSeconds(10)
+  $script:watchTask=$name; $script:watchAt=(Get-Date).AddSeconds(5)
   $timer.Interval=100   # check every 0.1 s until the hardware confirms
 }
 function Do-Toggle {
@@ -292,7 +293,7 @@ function Add-Include($path){ $cf=Read-Cfg; $cf.gamesInclude=@(@($cf.gamesInclude
 function Add-Exclude($path){ $cf=Read-Cfg; $cf.gamesExclude=@(@($cf.gamesExclude) + $path | Select -Unique); $cf.gamesInclude=@($cf.gamesInclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 function Remove-Exclude($path){ $cf=Read-Cfg; $cf.gamesExclude=@($cf.gamesExclude | ? { $_ -ne $path }); Save-Cfg $cf; $script:scanAt=[datetime]::MinValue }
 # re-apply the plug/unplug rules now (used at startup and when automation resumes)
-function Run-Auto([string]$reason) { $script:ourCmdUntil=(Get-Date).AddSeconds(10); $script:osdReason=$reason; $script:cmdAt=Get-Date; Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto' }
+function Run-Auto([string]$reason) { $script:ourCmdUntil=(Get-Date).AddSeconds(10); $script:osdReason=$reason; $script:cmdAt=Get-Date; Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList '/run /tn CoolBoostAuto'; $script:watchTask='CoolBoostAuto'; $script:watchAt=(Get-Date).AddSeconds(5) }
 function Open-NitroSense {
   # NitroSense / PredatorSense package names differ between models and versions, so look it up
   $pkg = Get-AppxPackage -Name 'AcerIncorporated.*' -EA SilentlyContinue | ? { $_.Name -match 'NitroSense|PredatorSense' } | Select -First 1
@@ -620,12 +621,31 @@ function Check-Update {
 $ni.add_BalloonTipClicked({ if ($script:updClick -and $script:updNew) { Start-UpdateInstall } })
 Load-Upd
 
+# ---------- a switch Windows is holding back ----------
+# Below 20% on battery (battery saver at its strongest) Windows leaves background tasks "Queued" and does not run them.
+# Nothing may happen later on its own (a switch hours afterwards looks like a bug), so a held task is cancelled and the user is told.
+$script:watchTask=''; $script:watchAt=[datetime]::MaxValue; $script:blockedSayAt=[datetime]::MinValue
+function Check-Held {
+  if (-not $script:watchTask -or (Get-Date) -lt $script:watchAt) { return }
+  $name=$script:watchTask; $script:watchTask=''; $script:watchAt=[datetime]::MaxValue
+  $state=''; try { $state=[string](Get-ScheduledTask -TaskName $name -EA Stop).State } catch {}
+  if ($state -ne 'Queued') { return }
+  Start-Process schtasks.exe -WindowStyle Hidden -ArgumentList "/end /tn $name"
+  TLog "Windows held the $name request (state Queued) - cancelled it, nothing will change later"
+  $script:last=''
+  if (((Get-Date)-$script:blockedSayAt).TotalSeconds -gt 30) {
+    $script:blockedSayAt=Get-Date
+    Upd-Say "CoolBoost can't change right now: Windows is limiting background tasks while the battery is low. Plug in the charger and try again." $false
+  }
+}
+
 # ---------- loop ----------
 $timer=New-Object Windows.Forms.Timer
 $timer.Interval=500
 $timer.add_Tick({
   try {
     Check-Osd
+    Check-Held
     if ($script:busy) {
       if ((Get-CB) -eq $script:expect -or (Get-Date) -gt $script:until) { $script:busy=$false; $timer.Interval=500; $script:last=''; Refresh }
       return
