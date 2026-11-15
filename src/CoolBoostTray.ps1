@@ -327,14 +327,31 @@ $miUpdAuto.ToolTipText = 'Off by default. Once a day, asks GitHub for the latest
 $miUpdNow = New-MenuItem 'Check for updates now' { Start-UpdateCheck $true }
 $miUpdNow.ToolTipText = 'Asks GitHub for the latest version number, once, now.'
 $miUpdate = New-MenuItem 'Update available' { Start-UpdateInstall }; Set-Bold $miUpdate; $miUpdate.Visible = $false
+# One log for the user: the worker's log (power and manual switching) and the tray's log (gaming, updates) merged by time.
+function Open-Log {
+  try {
+    $rows = New-Object Collections.ArrayList; $n = 0
+    $srcs = @(@{ p = "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log"; t = '[power]' }, @{ p = "$env:ProgramData\CoolBoostAuto\tray.log"; t = '[tray] ' })
+    foreach ($s in $srcs) {
+      if (-not (Test-Path $s.p)) { continue }
+      foreach ($l in (Get-Content $s.p)) {
+        $n++
+        if ($l -match '^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) (.*)$') { [void]$rows.Add([pscustomobject]@{ k = $Matches[1]; n = $n; l = "$($Matches[1]) $($s.t) $($Matches[2])" }) }
+        elseif ($l.Trim()) { [void]$rows.Add([pscustomobject]@{ k = ''; n = $n; l = "                    $($s.t) $l" }) }
+      }
+    }
+    $f = Join-Path $env:TEMP 'CoolBoostAuto-log.txt'
+    ($rows | Sort-Object k, n | ForEach-Object { $_.l }) | Set-Content $f -Encoding UTF8
+    Start-Process notepad $f
+  } catch { TLog "Could not open the log: $_" }
+}
 $miOpenNS = New-MenuItem 'Open NitroSense' { Open-NitroSense }
 $miLogs = New-MenuItem 'Tools' $null
 $miSettings = New-MenuItem 'Settings' $null
 $miSettings.DropDownItems.AddRange([Windows.Forms.ToolStripItem[]]@($miStart, $miOsd, (New-Sep), $miUpdAuto, $miUpdNow))
 [void]$miLogs.DropDownItems.Add($miOpenNS)
 [void]$miLogs.DropDownItems.Add((New-Sep))
-[void]$miLogs.DropDownItems.Add((New-MenuItem 'Open log: power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
-[void]$miLogs.DropDownItems.Add((New-MenuItem 'Open log: gaming automation' { $p = "$env:ProgramData\CoolBoostAuto\tray.log"; if (-not (Test-Path $p)) { New-Item $p -ItemType File -Force | Out-Null }; Start-Process notepad $p }))
+[void]$miLogs.DropDownItems.Add((New-MenuItem 'Open log' { Open-Log }))
 $miExit = New-MenuItem 'Exit (stops all automation)' { TLog 'Exited - all automation stopped'; $ni.Visible=$false; [Windows.Forms.Application]::Exit() }
 $menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miUpdate, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miSettings, $miLogs, (New-Sep), $miExit))
 

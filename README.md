@@ -85,7 +85,7 @@ Whenever CoolBoost switches, a small notice appears above the taskbar for about 
 - **Games** ▸ the games detected now, **Add a running app** (treat an open app as a game), **Ignore a game**, and **Ignored apps** (click one to stop ignoring it).
 - **Pause automation**: nothing switches by itself until you untick it. Clicking the icon still works.
 - **Settings** ▸ **Start with Windows** · **On-screen notice** · **Check for updates automatically** (off by default) · **Check for updates now**: asks GitHub for the latest version number and tells you if there's a newer one. Nothing is downloaded or installed unless you click the update; it then opens a window that runs the same PowerShell installer shown above, stays open, and waits for you to press Enter.
-- **Tools** ▸ **Open NitroSense** · **Open log** (power and manual switching, or gaming automation).
+- **Tools** ▸ **Open NitroSense** · **Open log** (everything CoolBoost Auto did, in time order, with *[power]* or *[tray]* showing where each line came from).
 - **Exit (stops all automation)**: closes the icon and stops every rule until you start CoolBoost Auto again from the Start menu.
 </details>
 
