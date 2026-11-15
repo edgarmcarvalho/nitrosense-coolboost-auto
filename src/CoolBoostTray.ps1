@@ -328,11 +328,15 @@ $miUpdNow = New-MenuItem 'Check for updates now' { Start-UpdateCheck $true }
 $miUpdNow.ToolTipText = 'Asks GitHub for the latest version number, once, now.'
 $miUpdate = New-MenuItem 'Update available' { Start-UpdateInstall }; Set-Bold $miUpdate; $miUpdate.Visible = $false
 $miOpenNS = New-MenuItem 'Open NitroSense' { Open-NitroSense }
-$miLogs = New-MenuItem 'Open log' $null
-[void]$miLogs.DropDownItems.Add((New-MenuItem 'Power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
-[void]$miLogs.DropDownItems.Add((New-MenuItem 'Gaming automation' { $p = "$env:ProgramData\CoolBoostAuto\tray.log"; if (-not (Test-Path $p)) { New-Item $p -ItemType File -Force | Out-Null }; Start-Process notepad $p }))
+$miLogs = New-MenuItem 'Tools' $null
+$miSettings = New-MenuItem 'Settings' $null
+$miSettings.DropDownItems.AddRange([Windows.Forms.ToolStripItem[]]@($miStart, $miOsd, (New-Sep), $miUpdAuto, $miUpdNow))
+[void]$miLogs.DropDownItems.Add($miOpenNS)
+[void]$miLogs.DropDownItems.Add((New-Sep))
+[void]$miLogs.DropDownItems.Add((New-MenuItem 'Open log: power and manual switching' { Start-Process notepad "$env:ProgramFiles\CoolBoostAuto\CoolBoostAuto.log" }))
+[void]$miLogs.DropDownItems.Add((New-MenuItem 'Open log: gaming automation' { $p = "$env:ProgramData\CoolBoostAuto\tray.log"; if (-not (Test-Path $p)) { New-Item $p -ItemType File -Force | Out-Null }; Start-Process notepad $p }))
 $miExit = New-MenuItem 'Exit (stops all automation)' { TLog 'Exited - all automation stopped'; $ni.Visible=$false; [Windows.Forms.Application]::Exit() }
-$menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miUpdate, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miStart, $miOsd, $miUpdAuto, $miUpdNow, $miOpenNS, $miLogs, (New-Sep), $miExit))
+$menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($miTitle, $miUpdate, $miStatus, $miToggle, (New-Sep), $miBattery, $miPlug, $miGame, $miGames, (New-Sep), $miPause, $miSettings, $miLogs, (New-Sep), $miExit))
 
 $skipProc='(?i)^(explorer|applicationframehost|textinputhost|systemsettings|shellexperiencehost|startmenuexperiencehost|searchhost|lockapp|powershell|pwsh|conhost|windowsterminal|nitrosense|predatorsense)$'
 function Fill-List($parent, $items, $emptyText) {

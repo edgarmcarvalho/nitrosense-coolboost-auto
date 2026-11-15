@@ -27,12 +27,10 @@ $restore = Item 'Restore state from before unplugging'; $restore.Checked = $true
 $plug.DropDownItems.AddRange([Windows.Forms.ToolStripItem[]]@($restore, (Item 'Always turn CoolBoost ON'), (Item 'Always turn CoolBoost OFF'), (Item 'Keep the battery state')))
 $game = Item 'While gaming: turn CoolBoost on (when plugged in)'; $game.Checked = $true
 $games = Item 'Games'; [void]$games.DropDownItems.Add((Info 'x'))
-$start = Item 'Start with Windows'; $start.Checked = $true
-$osd = Item 'On-screen notice'; $osd.Checked = $true
-$logs = Item 'Open log'; [void]$logs.DropDownItems.Add((Info 'x'))
+$settings = Item 'Settings'; [void]$settings.DropDownItems.Add((Info 'x'))
+$tools = Item 'Tools'; [void]$tools.DropDownItems.Add((Info 'x'))
 $menu.Items.AddRange([Windows.Forms.ToolStripItem[]]@($title, $status, $toggle, (Sep), $battery, $plug, $game, $games, (Sep),
-  (Item 'Pause automation'), $start, $osd, (Item 'Check for updates automatically'), (Item 'Check for updates now'),
-  (Item 'Open NitroSense'), $logs, (Sep), (Item 'Exit (stops all automation)')))
+  (Item 'Pause automation'), $settings, $tools, (Sep), (Item 'Exit (stops all automation)')))
 
 # ---- show it over a dark window and capture it ----
 $form = New-Object Windows.Forms.Form

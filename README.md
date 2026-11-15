@@ -9,7 +9,7 @@
 
 **[⬇ Download the latest version](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest)** · 🇧🇷 [Leia em português](README.pt-BR.md)
 
-![CoolBoost Auto: tray icon states and menu](docs/screenshot.png?v=2)
+![CoolBoost Auto: tray icon states and menu](docs/screenshot.png?v=3)
 
 > Not affiliated with or endorsed by Acer. *Acer, Nitro, NitroSense and CoolBoost are trademarks of Acer Inc.*
 
@@ -74,7 +74,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 <img src="docs/notice.png" width="210" align="right" alt="Notice reading: CoolBoost ON, gaming: BeamNG.drive">
 
-Whenever CoolBoost switches, a small notice appears above the taskbar for about 3 seconds and says why (*unplugged*, *gaming: (the game)*, *game closed*…). It never takes focus; turn it off with **On-screen notice** in the menu.
+Whenever CoolBoost switches, a small notice appears above the taskbar for about 3 seconds and says why (*unplugged*, *gaming: (the game)*, *game closed*…). It never takes focus; turn it off in **Settings ▸ On-screen notice**.
 
 <details><summary><b>Everything in the menu</b></summary>
 
@@ -84,9 +84,8 @@ Whenever CoolBoost switches, a small notice appears above the taskbar for about 
 - **While gaming: turn CoolBoost on (when plugged in)**: the game rule.
 - **Games** ▸ the games detected now, **Add a running app** (treat an open app as a game), **Ignore a game**, and **Ignored apps** (click one to stop ignoring it).
 - **Pause automation**: nothing switches by itself until you untick it. Clicking the icon still works.
-- **Start with Windows** · **On-screen notice**.
-- **Check for updates automatically** (off by default) · **Check for updates now**: asks GitHub for the latest version number and tells you if there's a newer one. Nothing is downloaded or installed unless you click the update; it then opens a window that runs the same PowerShell installer shown above, stays open, and waits for you to press Enter.
-- **Open NitroSense** · **Open log**.
+- **Settings** ▸ **Start with Windows** · **On-screen notice** · **Check for updates automatically** (off by default) · **Check for updates now**: asks GitHub for the latest version number and tells you if there's a newer one. Nothing is downloaded or installed unless you click the update; it then opens a window that runs the same PowerShell installer shown above, stays open, and waits for you to press Enter.
+- **Tools** ▸ **Open NitroSense** · **Open log** (power and manual switching, or gaming automation).
 - **Exit (stops all automation)**: closes the icon and stops every rule until you start CoolBoost Auto again from the Start menu.
 </details>
 
