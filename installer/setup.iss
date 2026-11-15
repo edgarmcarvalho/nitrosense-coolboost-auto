@@ -26,7 +26,7 @@ AppUpdatesURL={#RepoUrl}/releases
 ; product name and version stamped into the setup .exe (required by code signing; see the signing steps in release.yml)
 VersionInfoVersion={#FileVersion}
 VersionInfoProductName={#AppName}
-VersionInfoProductVersion={#AppVersion}
+VersionInfoProductVersion={#FileVersion}
 VersionInfoCompany=edgarmcarvalho
 VersionInfoDescription={#AppName} setup
 DefaultDirName={autopf}\CoolBoost Auto

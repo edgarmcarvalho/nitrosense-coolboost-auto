@@ -36,6 +36,7 @@ jobs:
           $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe", "$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $iscc) { throw 'ISCC.exe not found' }
           $num = if ($ver -match '^(\d+)\.(\d+)\.(\d+)') { "$($Matches[1]).$($Matches[2]).$($Matches[3]).0" } else { '0.0.0.0' }   # numeric file version for the .exe properties
+          "FILE_VERSION=$num" | Out-File $env:GITHUB_ENV -Append
           & $iscc.FullName "/DAppVersion=$ver" "/DFileVersion=$num" installer\setup.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
 
@@ -72,7 +73,7 @@ jobs:
           wait-for-completion-timeout-in-seconds: 7200
           output-artifact-directory: signed
           parameters: |
-            version: "${{ env.VERSION }}"
+            version: "${{ env.FILE_VERSION }}"
 
       - name: Use the signed setup
         if: github.ref_type == 'tag' && vars.SIGNPATH_ORGANIZATION_ID != ''
