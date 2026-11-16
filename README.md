@@ -7,7 +7,7 @@
 
 **Automatic CoolBoost™ for Acer Nitro laptops.** It turns CoolBoost **off on battery**, **back on your terms when you plug in**, and **on while you're gaming**. One click on the tray icon switches it whenever you want. NitroSense never has to open.
 
-**[⬇ Download the latest version](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest)** · 🇧🇷 [Leia em português](README.pt-BR.md)
+**[⬇ Install it](#install)** · 🇧🇷 [Leia em português](README.pt-BR.md)
 
 ![CoolBoost Auto: tray icon states and menu](docs/screenshot.png?v=4)
 
@@ -37,17 +37,19 @@ It downloads the latest release, checks its SHA-256 checksum, and runs the insta
 
 Afterwards, a red or grey fan appears next to the clock (or under the **^** arrow; drag it onto the taskbar to keep it visible).
 
-**Prefer the setup wizard?** Download **`CoolBoostAuto-Setup-x.y.z.exe`** from the [latest release](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest) and run it. Because it isn't code-signed, Windows may block it (see below); if it does, use the line above.
+**Upgrading:** run the same line again. Your settings are kept.
 
-**Upgrading:** run the same line again (or the newer setup). Your settings are kept.
+**Uninstalling:** *Settings → Apps → Installed apps → CoolBoost Auto → Uninstall*. Everything is removed; CoolBoost stays in its current state. Or paste this line in PowerShell:
 
-**Uninstalling:** *Settings → Apps → Installed apps → CoolBoost Auto → Uninstall*. Everything is removed; CoolBoost stays in its current state.
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1))) -Uninstall
+```
 
-> **If Windows blocks the setup .exe or the zip:** they aren't code-signed, so SmartScreen may say *Windows protected your PC* (**More info → Run anyway**), and **Smart App Control** may block them with no way around. That's why the PowerShell line above exists. The files are the same and have published checksums.
+> **Why PowerShell and not a download?** A program downloaded with a browser can be stopped by SmartScreen or **Smart App Control** when it isn't code-signed, with no way around. PowerShell does the download here, so Windows doesn't block it, and the checksum is verified before anything runs. There's no setup `.exe` to download.
 
-<details><summary><b>Install with scripts instead of the wizard</b></summary>
+<details><summary><b>Install from the scripts zip instead</b></summary>
 
-Download `CoolBoostAuto-Scripts-x.y.z.zip` from the release. Before extracting, right-click it → **Properties** → tick **Unblock** → OK. Then open PowerShell in the extracted folder and run:
+Download `CoolBoostAuto-Scripts-x.y.z.zip` from the [latest release](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest). Before extracting, right-click it → **Properties** → tick **Unblock** → OK. Then open PowerShell in the extracted folder and run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
@@ -129,11 +131,9 @@ The installer checks for the CoolBoost interface and NitroSense, not for a model
 
 No telemetry, no account, nothing leaves your laptop. The only exception is the optional update check, which asks GitHub for the latest release number when you turn it on or click it. If you then click the update itself, the new version is downloaded from GitHub and installed; that only happens when you click.
 
-## Code signing policy
+## Code signing
 
-The setup and the scripts are currently **unsigned**: a code-signing certificate for an independent open-source project needs either money or proof of public adoption. The [SignPath Foundation](https://signpath.org) free program declined the application for now, because the project doesn't yet have enough public visibility, and it can be reapplied for later. Until then, install with the **PowerShell line above**, which Windows doesn't block, and check the SHA-256 checksums published with each release.
-
-The release workflow already has the signing steps prepared, so every release can be signed once a certificate exists.
+CoolBoost Auto is distributed as **PowerShell scripts**, with no compiled `.exe`, so there's nothing for a signature to hide: you can read every line. The scripts aren't code-signed (a certificate for an independent open-source project needs money or proof of public adoption; the [SignPath Foundation](https://signpath.org) free program declined the application for now). Install with the **PowerShell line above**, which Windows doesn't block, and check the SHA-256 checksums published with each release.
 
 ## How it works
 
@@ -148,7 +148,7 @@ The release workflow already has the signing steps prepared, so every release ca
 - **The CoolBoost call:** read with `APGeAction.GetFunction(0x207)` (byte 1) and set with `APGeAction.SetFunction((state << 16) | 7)` in `root\WMI`, the same firmware call NitroSense uses. NitroSense's own setting (`HKLM\SOFTWARE\OEM\NitroSense\FanControl\CoolBoostMode`) is kept in sync.
 - **Files:** settings in `C:\ProgramData\CoolBoostAuto\settings.json`; logs in `C:\Program Files\CoolBoostAuto\CoolBoostAuto.log` (power and manual) and `C:\ProgramData\CoolBoostAuto\tray.log` (gaming), both trimmed automatically.
 - **Security:** the SYSTEM part lives in a folder only admins can change, and reads only true/false values and a fixed list of options from the user-editable settings file.
-- **Building:** GitHub Actions ([`release.yml`](.github/workflows/release.yml)) builds each `v*` tag: it checks the PowerShell syntax, compiles [`installer/setup.iss`](installer/setup.iss) with Inno Setup, and attaches the setup, a scripts zip and SHA-256 checksums, with notes from [`release-notes/`](release-notes). Locally: `ISCC.exe /DAppVersion=1.2.3 installer\setup.iss`.
+- **Building:** GitHub Actions ([`release.yml`](.github/workflows/release.yml)) builds each `v*` tag: it checks the PowerShell syntax, stamps the version, and attaches a scripts zip and SHA-256 checksums, with notes from [`release-notes/`](release-notes).
 - **Limitations:** games are recognised by their executable, so a game started through a launcher counts once the game itself runs. Built on Windows PowerShell, so it uses more memory than a native app (about 130 MB).
 </details>
 

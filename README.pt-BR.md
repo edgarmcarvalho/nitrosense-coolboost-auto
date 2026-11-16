@@ -7,7 +7,7 @@
 
 **CoolBoost™ automático para notebooks Acer Nitro.** Ele **desliga o CoolBoost na bateria**, **volta para a sua escolha quando você conecta o carregador** e **liga enquanto você joga**. Um clique no ícone da bandeja alterna quando você quiser. O NitroSense nunca precisa abrir.
 
-**[⬇ Baixar a versão mais recente](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest)** · 🇺🇸 [Read in English](README.md)
+**[⬇ Instalar](#instalação)** · 🇺🇸 [Read in English](README.md)
 
 ![CoolBoost Auto: estados do ícone da bandeja e menu](docs/screenshot.png?v=4)
 
@@ -37,17 +37,19 @@ Ele baixa a versão mais recente, confere o checksum SHA-256 e executa o instala
 
 Depois, uma ventoinha vermelha ou cinza aparece ao lado do relógio (ou na setinha **^**; arraste-a para a barra de tarefas para deixá-la sempre visível).
 
-**Prefere o assistente de instalação?** Baixe o **`CoolBoostAuto-Setup-x.y.z.exe`** da [versão mais recente](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest) e execute. Como ele não tem assinatura digital, o Windows pode bloqueá-lo (veja abaixo); se bloquear, use a linha acima.
+**Atualizar:** rode a mesma linha de novo. Suas configurações são mantidas.
 
-**Atualizar:** rode a mesma linha de novo (ou o instalador da versão nova). Suas configurações são mantidas.
+**Desinstalar:** *Configurações → Aplicativos → Aplicativos instalados → CoolBoost Auto → Desinstalar*. Tudo é removido; o CoolBoost fica no estado em que estiver. Ou cole esta linha no PowerShell:
 
-**Desinstalar:** *Configurações → Aplicativos → Aplicativos instalados → CoolBoost Auto → Desinstalar*. Tudo é removido; o CoolBoost fica no estado em que estiver.
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1))) -Uninstall
+```
 
-> **Se o Windows bloquear o instalador .exe ou o zip:** eles não têm assinatura digital, então o SmartScreen pode mostrar *O Windows protegeu o computador* (**Mais informações → Executar assim mesmo**), e o **Controle Inteligente de Aplicativos** (Smart App Control) pode bloqueá-los sem saída. Por isso existe a linha do PowerShell acima. Os arquivos são os mesmos e têm checksums publicados.
+> **Por que PowerShell e não um download?** Um programa baixado pelo navegador pode ser barrado pelo SmartScreen ou pelo **Controle Inteligente de Aplicativos** (Smart App Control) quando não tem assinatura digital, sem saída. Aqui quem baixa é o PowerShell, então o Windows não bloqueia, e o checksum é conferido antes de qualquer coisa rodar. Não existe um instalador `.exe` para baixar.
 
-<details><summary><b>Instalar com scripts em vez do assistente</b></summary>
+<details><summary><b>Instalar pelo zip de scripts</b></summary>
 
-Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da versão. Antes de extrair, clique com o botão direito → **Propriedades** → marque **Desbloquear** → OK. Depois abra o PowerShell na pasta extraída e rode:
+Baixe o `CoolBoostAuto-Scripts-x.y.z.zip` da [versão mais recente](https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest). Antes de extrair, clique com o botão direito → **Propriedades** → marque **Desbloquear** → OK. Depois abra o PowerShell na pasta extraída e rode:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
@@ -129,11 +131,9 @@ O instalador verifica a interface do CoolBoost e o NitroSense, não o nome do mo
 
 Sem telemetria, sem conta, nada sai do seu notebook. A única exceção é a verificação opcional de atualizações, que pergunta ao GitHub o número da versão mais recente quando você a liga ou clica nela. Se você clicar na atualização em si, a nova versão é baixada do GitHub e instalada; isso só acontece quando você clica.
 
-## Política de assinatura de código
+## Assinatura de código
 
-O instalador e os scripts estão **sem assinatura**: um certificado de assinatura de código para um projeto open source independente exige dinheiro ou prova de adoção pública. O programa gratuito da [SignPath Foundation](https://signpath.org) recusou o pedido por enquanto, porque o projeto ainda não tem visibilidade pública suficiente, e dá para pedir de novo mais tarde. Até lá, instale pela **linha do PowerShell acima**, que o Windows não bloqueia, e confira os checksums SHA-256 publicados em cada versão.
-
-O workflow de release já tem os passos de assinatura prontos, então toda versão poderá ser assinada quando houver um certificado.
+O CoolBoost Auto é distribuído como **scripts PowerShell**, sem nenhum `.exe` compilado: você pode ler todas as linhas. Os scripts não têm assinatura digital (um certificado para um projeto open source independente exige dinheiro ou prova de adoção pública; o programa gratuito da [SignPath Foundation](https://signpath.org) recusou o pedido por enquanto). Instale pela **linha do PowerShell acima**, que o Windows não bloqueia, e confira os checksums SHA-256 publicados em cada versão.
 
 ## Como funciona
 
@@ -148,7 +148,7 @@ O workflow de release já tem os passos de assinatura prontos, então toda vers�
 - **A chamada do CoolBoost:** lida com `APGeAction.GetFunction(0x207)` (byte 1) e definida com `APGeAction.SetFunction((estado << 16) | 7)` em `root\WMI`, a mesma chamada de firmware que o NitroSense usa. A configuração do próprio NitroSense (`HKLM\SOFTWARE\OEM\NitroSense\FanControl\CoolBoostMode`) é mantida em sincronia.
 - **Arquivos:** configurações em `C:\ProgramData\CoolBoostAuto\settings.json`; logs em `C:\Program Files\CoolBoostAuto\CoolBoostAuto.log` (energia e manual) e `C:\ProgramData\CoolBoostAuto\tray.log` (jogos), ambos reduzidos automaticamente.
 - **Segurança:** a parte SYSTEM fica numa pasta que só administradores podem alterar e, do arquivo de configurações (editável pelo usuário), só lê valores verdadeiro/falso e uma lista fixa de opções.
-- **Geração do instalador:** o GitHub Actions ([`release.yml`](.github/workflows/release.yml)) gera cada tag `v*`: confere a sintaxe do PowerShell, compila o [`installer/setup.iss`](installer/setup.iss) com o Inno Setup e anexa o instalador, um zip com os scripts e os checksums SHA-256, com as notas de [`release-notes/`](release-notes). Localmente: `ISCC.exe /DAppVersion=1.2.3 installer\setup.iss`.
+- **Geração das versões:** o GitHub Actions ([`release.yml`](.github/workflows/release.yml)) gera cada tag `v*`: confere a sintaxe do PowerShell, grava a versão e anexa um zip com os scripts e os checksums SHA-256, com as notas de [`release-notes/`](release-notes).
 - **Limitações:** os jogos são identificados pelo executável, então um jogo aberto por um launcher conta quando o jogo em si começa a rodar. Feito em Windows PowerShell, usa mais memória que um app nativo (cerca de 130 MB).
 </details>
 

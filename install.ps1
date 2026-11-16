@@ -76,7 +76,7 @@ elseif ($Force) { Write-Warning "NitroSense settings not found - the tray icon w
 else { Fail "NitroSense doesn't seem to be installed (its settings key is missing). Install NitroSense from the Microsoft Store / Acer support first." 3 }
 if ($CheckOnly) { Done 0 }
 
-$files = @(Join-Path $src 'CoolBoostSys.ps1'; Join-Path $src 'CoolBoostTray.ps1'; Join-Path $src 'Start CoolBoost Auto.vbs') + ($icons | ForEach-Object { Join-Path $assets $_ })
+$files = @(Join-Path $src 'CoolBoostSys.ps1'; Join-Path $PSScriptRoot 'uninstall.ps1'; Join-Path $src 'CoolBoostTray.ps1'; Join-Path $src 'Start CoolBoost Auto.vbs') + ($icons | ForEach-Object { Join-Path $assets $_ })
 foreach ($f in $files) { if (-not (Test-Path $f)) { Fail "Missing file $f - extract the whole download before running install.ps1." } }
 
 # ---------- stop a running tray icon (upgrade) ----------
@@ -87,6 +87,7 @@ Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $
 Step 'Installing files'
 New-Item -ItemType Directory -Force -Path $PF, $PD | Out-Null
 Copy-Item (Join-Path $src 'CoolBoostSys.ps1') $PF -Force
+Copy-Item (Join-Path $PSScriptRoot 'uninstall.ps1') $PF -Force   # the "Installed apps" entry runs this copy
 foreach ($f in 'CoolBoostTray.ps1', 'Start CoolBoost Auto.vbs') { Copy-Item (Join-Path $src $f) $PD -Force }
 foreach ($f in $icons) { Copy-Item (Join-Path $assets $f) $PD -Force }
 # version shown in the tray menu (stamped by the release build; 'dev' for local installs)
@@ -192,6 +193,23 @@ Lnk $startLnk; Ok 'Start menu: CoolBoost Auto'
 $autoLnk = Join-Path $commonStartup 'CoolBoost Auto.lnk'
 Lnk $autoLnk ' /autostart'; Ok "Start with Windows: $(if ($NoAutostart) { 'off' } else { 'on' }) (can be changed in the tray menu)"
 
+# ---------- "Installed apps" entry ----------
+# Uninstall runs uninstall.ps1 through PowerShell, the same way the installer and updater run. No separate .exe is involved.
+Step 'Adding to Installed apps'
+$uroot = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+Remove-Item (Join-Path $uroot '{8F3C2B1E-6A4D-4E8B-9C2F-1D5E7A9B0C34}_is1') -Recurse -Force -ErrorAction SilentlyContinue   # entry left by the old setup .exe
+$uk = Join-Path $uroot 'CoolBoostAuto'; New-Item $uk -Force | Out-Null
+$uver = 'dev'; try { $uver = (Get-Content (Join-Path $PD 'version.txt') -Raw).Trim() } catch {}
+$uvals = [ordered]@{
+  DisplayName = 'CoolBoost Auto'; DisplayVersion = $uver; Publisher = 'edgarmcarvalho'
+  URLInfoAbout = 'https://github.com/edgarmcarvalho/nitrosense-coolboost-auto'
+  DisplayIcon = (Join-Path $PD 'app.ico'); InstallLocation = $PF
+  UninstallString = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$(Join-Path $PF 'uninstall.ps1')`""
+}
+foreach ($n in $uvals.Keys) { New-ItemProperty $uk -Name $n -Value $uvals[$n] -PropertyType String -Force | Out-Null }
+foreach ($n in 'NoModify', 'NoRepair') { New-ItemProperty $uk -Name $n -Value 1 -PropertyType DWord -Force | Out-Null }
+Ok 'Settings > Apps > Installed apps > CoolBoost Auto'
+
 # ---------- start the tray icon as the normal (non-admin) user ----------
 if (-not $NoStartTray) {
   Step 'Starting CoolBoost Auto'
@@ -199,5 +217,5 @@ if (-not $NoStartTray) {
   Ok 'Look for the red fan icon next to the clock (it may be under the ^ arrow).'
 }
 
-Write-Host "`nCoolBoost Auto is installed. Right-click its tray icon for options. To remove: run uninstall.ps1." -ForegroundColor Green
+Write-Host "`nCoolBoost Auto is installed. Right-click its tray icon for options. To remove: Settings > Apps > Installed apps > CoolBoost Auto." -ForegroundColor Green
 Done 0

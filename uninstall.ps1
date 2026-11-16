@@ -50,5 +50,10 @@ if (Test-Path $PD) {
   else { Remove-Item $PD -Recurse -Force }
 }
 
+Step 'Removing from Installed apps'
+foreach ($n in 'CoolBoostAuto', '{8F3C2B1E-6A4D-4E8B-9C2F-1D5E7A9B0C34}_is1') {
+  Remove-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$n" -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "`nCoolBoost Auto was uninstalled.$(if ($KeepSettings) { ' Your settings were kept.' })" -ForegroundColor Green
 if (-not $Quiet) { Read-Host "`nPress Enter to close" | Out-Null }

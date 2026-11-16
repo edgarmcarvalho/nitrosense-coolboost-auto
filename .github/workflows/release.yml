@@ -1,4 +1,4 @@
-name: Build installer and release
+name: Build and release
 
 on:
   push:
@@ -24,74 +24,19 @@ jobs:
           }
           if ($bad) { throw "$bad syntax error(s)" } else { 'All scripts parse OK' }
 
-      - name: Install Inno Setup
-        run: choco install innosetup -y --no-progress
-
-      - name: Build setup wizard
+      - name: Stamp the version
         shell: pwsh
         run: |
           $ver = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.0.0-dev' }
           "VERSION=$ver" | Out-File $env:GITHUB_ENV -Append
           Set-Content src\version.txt $ver -Encoding ascii   # shown in the tray menu
-          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe", "$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $iscc) { throw 'ISCC.exe not found' }
-          $num = if ($ver -match '^(\d+)\.(\d+)\.(\d+)') { "$($Matches[1]).$($Matches[2]).$($Matches[3]).0" } else { '0.0.0.0' }   # numeric file version for the .exe properties
-          "FILE_VERSION=$num" | Out-File $env:GITHUB_ENV -Append
-          & $iscc.FullName "/DAppVersion=$ver" "/DFileVersion=$num" installer\setup.iss
-          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
-
-      # ---- Code signing (SignPath Foundation) ----
-      # Dormant until the repository variable SIGNPATH_ORGANIZATION_ID and the secret SIGNPATH_API_TOKEN exist, so releases keep
-      # working unsigned until the SignPath approval is through. Only tag builds are signed; every release needs a manual approval
-      # in SignPath. The wait below is long on purpose so there is time to approve it.
-      - name: Stage setup for signing
-        if: github.ref_type == 'tag' && vars.SIGNPATH_ORGANIZATION_ID != ''
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force unsigned | Out-Null
-          Copy-Item "dist\CoolBoostAuto-Setup-$env:VERSION.exe" unsigned\
-
-      - name: Upload unsigned setup
-        id: upload-unsigned
-        if: github.ref_type == 'tag' && vars.SIGNPATH_ORGANIZATION_ID != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: unsigned-setup
-          path: unsigned/
-
-      - name: Sign setup (SignPath)
-        if: github.ref_type == 'tag' && vars.SIGNPATH_ORGANIZATION_ID != ''
-        uses: signpath/github-action-submit-signing-request@v3
-        with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'nitrosense-coolboost-auto' }}
-          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
-          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG || 'setup' }}
-          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
-          wait-for-completion: true
-          wait-for-completion-timeout-in-seconds: 7200
-          output-artifact-directory: signed
-          parameters: |
-            version: "${{ env.FILE_VERSION }}"
-
-      - name: Use the signed setup
-        if: github.ref_type == 'tag' && vars.SIGNPATH_ORGANIZATION_ID != ''
-        shell: pwsh
-        run: |
-          $s = Get-ChildItem signed -Recurse -Filter *.exe | Select-Object -First 1
-          if (-not $s) { throw 'SignPath returned no .exe' }
-          $sig = Get-AuthenticodeSignature $s.FullName
-          if ($sig.Status -ne 'Valid') { throw "The returned setup is not validly signed ($($sig.Status))" }
-          Copy-Item $s.FullName "dist\CoolBoostAuto-Setup-$env:VERSION.exe" -Force
-          "Signed by: $($sig.SignerCertificate.Subject)"
-
+          New-Item -ItemType Directory -Force dist | Out-Null
       - name: Package scripts zip
         shell: pwsh
         run: |
           $stage = "stage\CoolBoostAuto-$env:VERSION"
           New-Item -ItemType Directory -Force $stage | Out-Null
-          Copy-Item install.ps1, uninstall.ps1, README.md, README.pt-BR.md, LICENSE $stage
+          Copy-Item install.ps1, uninstall.ps1, INSTALL.txt, README.md, README.pt-BR.md, LICENSE $stage
           Copy-Item src, assets $stage -Recurse
           Compress-Archive -Path $stage -DestinationPath "dist\CoolBoostAuto-Scripts-$env:VERSION.zip"
           $sums = Get-ChildItem dist -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" }
