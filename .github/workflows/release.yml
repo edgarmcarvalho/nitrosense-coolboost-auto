@@ -36,7 +36,8 @@ jobs:
         run: |
           $stage = "stage\CoolBoostAuto-$env:VERSION"
           New-Item -ItemType Directory -Force $stage | Out-Null
-          Copy-Item install.ps1, uninstall.ps1, INSTALL.txt, README.md, README.pt-BR.md, LICENSE $stage
+          Copy-Item install.ps1, uninstall.ps1, LICENSE $stage
+          Copy-Item docs\zip-readme.txt (Join-Path $stage 'README.txt')
           Copy-Item src, assets $stage -Recurse
           Compress-Archive -Path $stage -DestinationPath "dist\CoolBoostAuto-Scripts-$env:VERSION.zip"
           $sums = Get-ChildItem dist -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" }

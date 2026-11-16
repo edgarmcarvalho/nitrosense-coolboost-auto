@@ -5,4 +5,4 @@
 *.iss text eol=crlf
 *.png binary
 *.ico binary
-INSTALL.txt text eol=crlf
+docs/zip-readme.txt text eol=crlf
