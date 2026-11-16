@@ -60,23 +60,31 @@ Write-Host "`nCoolBoost Auto: download and $(if ($Uninstall) { 'remove' } else {
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('CoolBoostAuto-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
 try {
   Write-Host '==> Looking for the latest release' -ForegroundColor Cyan
-  $rel = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" -Headers $hdr
-  $zipA  = $rel.assets | Where-Object { $_.name -like 'CoolBoostAuto-Scripts-*.zip' } | Select-Object -First 1
-  $sumsA = $rel.assets | Where-Object { $_.name -eq 'SHA256SUMS.txt' } | Select-Object -First 1
-  if (-not $zipA -or -not $sumsA) { return (Fail "Release $($rel.tag_name) has no scripts zip or checksums file.") }
-  Write-Host "    $($rel.tag_name)" -ForegroundColor Green
+  # The latest tag comes from the release page redirect, not the GitHub API: the API allows only
+  # 60 anonymous requests per hour per IP address and fails with 403 on shared networks.
+  $req = [Net.WebRequest]::Create("https://github.com/$repo/releases/latest")
+  $req.AllowAutoRedirect = $false
+  $req.UserAgent = 'CoolBoostAuto-get'
+  $resp = $req.GetResponse()
+  $loc = [string]$resp.Headers['Location']
+  $resp.Close()
+  $tag = ($loc.TrimEnd('/') -split '/')[-1]
+  if ($tag -notmatch '^v\d+(\.\d+)*$') { return (Fail 'Could not find the latest release.') }
+  $base  = "https://github.com/$repo/releases/download/$tag"
+  $zName = "CoolBoostAuto-Scripts-$($tag.TrimStart('v')).zip"
+  Write-Host "    $tag" -ForegroundColor Green
 
   New-Item $tmp -ItemType Directory | Out-Null
-  $zip = Join-Path $tmp $zipA.name
+  $zip = Join-Path $tmp $zName
   Write-Host '==> Downloading' -ForegroundColor Cyan
-  Get-FileWithProgress $zipA.browser_download_url $zip
+  Get-FileWithProgress "$base/$zName" $zip
   $sumsFile = Join-Path $tmp 'SHA256SUMS.txt'
-  Invoke-WebRequest $sumsA.browser_download_url -OutFile $sumsFile -Headers $hdr -UseBasicParsing
+  Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile $sumsFile -Headers $hdr -UseBasicParsing
   $sums = Get-Content $sumsFile -Raw
 
   Write-Host '==> Checking the SHA-256 checksum' -ForegroundColor Cyan
   $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-  $line = ($sums -split "`r?`n") | Where-Object { $_ -match [regex]::Escape($zipA.name) } | Select-Object -First 1
+  $line = ($sums -split "`r?`n") | Where-Object { $_ -match [regex]::Escape($zName) } | Select-Object -First 1
   if (-not $line -or $line.ToLower() -notmatch $hash) { return (Fail 'The download does not match the published checksum, so it was not installed.') }
   Write-Host "    OK ($hash)" -ForegroundColor Green
 
