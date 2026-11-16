@@ -1,0 +1,71 @@
+CoolBoost Auto - how to install
+===============================
+
+EASIEST WAY (no zip needed)
+Open PowerShell (Start menu > type PowerShell > Enter), paste this line with a
+right-click and press Enter:
+
+  irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1 | iex
+
+
+INSTALLING FROM THIS ZIP
+ 1. If you haven't extracted it yet: right-click the zip > Properties > tick
+    "Unblock" > OK. Then right-click the zip > Extract All.
+ 2. Open the extracted folder (the one that contains install.ps1).
+ 3. Click the address bar at the top of that folder window, type  powershell
+    and press Enter. A blue PowerShell window opens in that folder.
+ 4. Type this and press Enter:
+
+      powershell -ExecutionPolicy Bypass -File .\install.ps1
+
+    (Double-clicking install.ps1 or "Run with PowerShell" does NOT work on a
+    default Windows. This line does.)
+ 5. Windows asks for administrator permission: click Yes. The installer checks
+    your laptop first and installs nothing if it isn't supported.
+ 6. When it says "CoolBoost Auto is installed", look for the fan icon next to
+    the clock (it may be under the ^ arrow). You can close the window.
+
+TO REMOVE IT
+Settings > Apps > Installed apps > CoolBoost Auto > Uninstall.
+
+PROBLEMS?
+https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues
+Please say your laptop model and what the window showed.
+
+
+===============================
+CoolBoost Auto - como instalar
+===============================
+
+JEITO MAIS FACIL (sem precisar do zip)
+Abra o PowerShell (menu Iniciar > digite PowerShell > Enter), cole esta linha
+com o botao direito do mouse e aperte Enter:
+
+  irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1 | iex
+
+
+INSTALANDO POR ESTE ZIP
+ 1. Se ainda nao extraiu: clique com o botao direito no zip > Propriedades >
+    marque "Desbloquear" > OK. Depois clique com o botao direito no zip >
+    Extrair tudo.
+ 2. Abra a pasta extraida (a que contem o install.ps1).
+ 3. Clique na barra de enderecos no topo da janela da pasta, digite  powershell
+    e aperte Enter. Abre uma janela azul do PowerShell nessa pasta.
+ 4. Digite isto e aperte Enter:
+
+      powershell -ExecutionPolicy Bypass -File .\install.ps1
+
+    (Dar duplo clique no install.ps1 ou usar "Executar com o PowerShell" NAO
+    funciona num Windows padrao. Esta linha funciona.)
+ 5. O Windows pede permissao de administrador: clique em Sim. O instalador
+    verifica o notebook primeiro e nao instala nada se ele nao for compativel.
+ 6. Quando aparecer "CoolBoost Auto is installed", procure a ventoinha ao lado
+    do relogio (pode estar na setinha ^). Pode fechar a janela.
+
+PARA REMOVER
+Configuracoes > Aplicativos > Aplicativos instalados > CoolBoost Auto >
+Desinstalar.
+
+PROBLEMAS?
+https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/issues
+Diga o modelo do notebook e o que a janela mostrou.

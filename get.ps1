@@ -2,12 +2,16 @@
 #
 #   irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1 | iex
 #
+# To remove it the same way (same download and checksum check, then it runs the release's uninstall.ps1):
+#
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/edgarmcarvalho/nitrosense-coolboost-auto/main/get.ps1))) -Uninstall
+#
 # Why this exists: files downloaded with a browser carry the "Mark of the Web", and Windows (SmartScreen,
 # Smart App Control, the default PowerShell policy) blocks unsigned ones. This script downloads the release with
 # PowerShell itself, which leaves no such mark, checks it against the published SHA-256 checksums and runs
 # the normal install.ps1 (which asks for administrator rights itself).
 # It changes nothing outside the install: a temporary folder is used and removed at the end.
-param([switch]$NoAutostart, [switch]$Quiet, [switch]$KeepFiles)
+param([switch]$NoAutostart, [switch]$Quiet, [switch]$KeepFiles, [switch]$Uninstall)
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $ProgressPreference = 'SilentlyContinue'
@@ -52,7 +56,7 @@ function Show-Bar($done, $total, $secs) {
 
 function Fail($m) { Write-Host "`nERROR: $m" -ForegroundColor Red; Write-Host "You can also download the scripts zip by hand: https://github.com/$repo/releases/latest" -ForegroundColor Yellow; return }
 
-Write-Host "`nCoolBoost Auto: download and install`n" -ForegroundColor White
+Write-Host "`nCoolBoost Auto: download and $(if ($Uninstall) { 'remove' } else { 'install' })`n" -ForegroundColor White
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('CoolBoostAuto-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
 try {
   Write-Host '==> Looking for the latest release' -ForegroundColor Cyan
@@ -80,6 +84,21 @@ try {
   $inst = Get-ChildItem (Join-Path $tmp 'x') -Recurse -Filter install.ps1 | Select-Object -First 1
   if (-not $inst) { return (Fail 'install.ps1 was not found in the download.') }
   Get-ChildItem (Split-Path $inst.FullName) -Recurse -File | Unblock-File -ErrorAction SilentlyContinue
+
+  if ($Uninstall) {
+    $un = Get-ChildItem (Join-Path $tmp 'x') -Recurse -Filter uninstall.ps1 | Select-Object -First 1
+    if (-not $un) { return (Fail 'uninstall.ps1 was not found in the download.') }
+    Write-Host '==> Removing' -ForegroundColor Cyan
+    Write-Host '    Windows will ask for administrator permission. A second window then opens and shows the removal;' -ForegroundColor Gray
+    Write-Host '    when it finishes, read the result there and press Enter to close that window.' -ForegroundColor Gray
+    $ua = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$($un.FullName)`"")
+    if ($Quiet) { $ua += '-Quiet' }
+    try { $pr = Start-Process powershell.exe -Verb RunAs -ArgumentList $ua -Wait -PassThru }
+    catch { return (Fail 'Administrator permission was not given, so nothing was removed.') }
+    if ($pr.ExitCode -eq 0) { Write-Host "`nDone. CoolBoost Auto was removed." -ForegroundColor Green }
+    else { Write-Host "`nThe removal stopped (code $($pr.ExitCode))." -ForegroundColor Yellow }
+    return
+  }
 
   Write-Host '==> Installing' -ForegroundColor Cyan
   Write-Host '    Windows will ask for administrator permission. A second window then opens and shows the install;' -ForegroundColor Gray
