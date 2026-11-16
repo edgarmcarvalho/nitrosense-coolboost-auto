@@ -534,10 +534,10 @@ function Check-Osd {
 
 # ---------- update check (tells you, never installs) ----------
 # Contacts GitHub only when you click "Check for updates now" or have ticked "Check for updates automatically" (off by default).
-# It asks for the latest release number and compares it with this one. Nothing is downloaded or installed, and the page it
+# It asks which release the page below redirects to (not the GitHub API, which refuses anonymous callers after 60 requests an hour) and compares that number with this one. Nothing is downloaded or installed, and the page it
 # opens is always the fixed address below, never one taken from the reply.
-$script:updUrl  = 'https://api.github.com/repos/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest'
 $script:updPage = 'https://github.com/edgarmcarvalho/nitrosense-coolboost-auto/releases/latest'
+$script:updUrl  = $script:updPage
 $script:updFile = "$env:ProgramData\CoolBoostAuto\update.json"
 $script:updHttp = $null; $script:updTask = $null; $script:updManual = $false; $script:updClick = $false
 $script:updNew = ''; $script:updNotified = ''; $script:updNext = [datetime]::MaxValue
@@ -583,13 +583,14 @@ function Start-UpdateCheck([bool]$manual) {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     if (-not $script:updHttp) {
       Add-Type -AssemblyName System.Net.Http
-      $h = New-Object System.Net.Http.HttpClient
+      $hh = New-Object System.Net.Http.HttpClientHandler
+      $hh.AllowAutoRedirect = $false   # we only want to read where the page redirects to
+      $h = New-Object System.Net.Http.HttpClient($hh)
       $h.Timeout = [TimeSpan]::FromSeconds(20)
       [void]$h.DefaultRequestHeaders.UserAgent.ParseAdd("CoolBoostAuto/$appVersion")
-      [void]$h.DefaultRequestHeaders.Accept.ParseAdd('application/vnd.github+json')
       $script:updHttp = $h
     }
-    $script:updTask = $script:updHttp.GetStringAsync($script:updUrl)   # runs in the background; the timer picks up the result
+    $script:updTask = $script:updHttp.GetAsync($script:updUrl)   # runs in the background; the timer picks up the result
   } catch { Upd-Failed "$_" }
 }
 # called on every timer tick: cheap unless a check is due or has just finished
@@ -600,7 +601,8 @@ function Check-Update {
     $script:updTask = $null
     if ($t.IsFaulted -or $t.IsCanceled) { Upd-Failed 'no answer'; return }
     try {
-      $tag = ($t.Result | ConvertFrom-Json).tag_name
+      $loc = $t.Result.Headers.Location
+      $tag = if ($loc) { ($loc.ToString().TrimEnd('/') -split '/')[-1] } else { '' }
       $v = Parse-Ver $tag
       if (-not $v) { throw "unexpected release tag '$tag'" }
       $script:updNew = if ($v -gt $script:curVer) { "$v" } else { '' }
